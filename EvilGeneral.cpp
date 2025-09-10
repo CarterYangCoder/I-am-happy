@@ -8,9 +8,9 @@ EvilGeneral::EvilGeneral(std::string name, EvilType type, std::string territory,
     maxHp = 100 + level * 20; // 增加合理的最大生命值
     setHP(maxHp);
     setHP(getMaxHP()); 
-    setATK(15 + level * 3);
-    setDEF(10 + level * 2);
-    setSpeed(10 + level * 2);
+    setATK(15 + level * 0.5);
+    setDEF(8 + level * 0.5);
+    setSpeed(10 + level * 0.5);
     setCritRate(0.05f + level * 0.01f);
 }
 

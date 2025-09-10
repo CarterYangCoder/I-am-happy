@@ -520,7 +520,7 @@ void Game::registerCommands() {
     };
     commandHandlers["pick"] = [this](const auto& args) {
         if (args.empty()) {
-            ui.displayMessage("用法: pick <物品名>，如 pick 黑曜晶尘", UIManager::Color::YELLOW);
+            ui.displayMessage("用法: pick <物品名>", UIManager::Color::YELLOW);
             return;
         }
         int roomId = gameMap.getCurrentRoomId();
@@ -529,17 +529,32 @@ void Game::registerCommands() {
         auto& items = room.items;
         auto it = std::find(items.begin(), items.end(), itemName);
         if (it != items.end()) {
-            player.addItemByName(itemName, 1);
-            lastActionMsg = "你获得了 " + itemName + "，已加入背包！";
-            ui.displayMessage(lastActionMsg, UIManager::Color::GREEN);
-            ui.displayMessage("可用 'use " + itemName + "' 使用，或 'wear " + itemName + "' 穿戴装备。", UIManager::Color::CYAN);
             items.erase(it);
+            player.addItemByName(itemName, 1);
+            lastActionMsg = "拾取了 " + itemName;
         } else {
             lastActionMsg = "当前房间没有该物品。";
-            ui.displayMessage(lastActionMsg, UIManager::Color::RED);
         }
         ui.displayPlayerStatus(player, lastActionMsg);
     };
+    
+    // 调试命令
+    commandHandlers["debug"] = [this](const auto& args) {
+        int roomId = gameMap.getCurrentRoomId();
+        auto& room = gameMap.rooms[roomId];
+        ui.displayMessage("当前房间ID: " + std::to_string(roomId), UIManager::Color::CYAN);
+        ui.displayMessage("房间名称: " + room.getRoomName(), UIManager::Color::CYAN);
+        ui.displayMessage("房间物品列表:", UIManager::Color::YELLOW);
+        if (room.items.empty()) {
+            ui.displayMessage("房间没有任何物品", UIManager::Color::RED);
+        } else {
+            for (size_t i = 0; i < room.items.size(); ++i) {
+                ui.displayMessage("[" + std::to_string(i) + "] '" + room.items[i] + "'", UIManager::Color::WHITE);
+            }
+        }
+    };
+    
+    // 设置别名
     commandAliases["get"] = "pick";
     commandAliases["拾取"] = "pick";
 }
