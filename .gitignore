@@ -1,0 +1,7 @@
+game_cre.*
+*.zip
+x64/
+save/
+.vscode/
+*.exe
+*.o
