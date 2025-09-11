@@ -3,9 +3,9 @@
 #define GAMEDATA_H
 
 // 核心常量定义（基于剧本设定）
-const float DEFAULT_CRIT_DAMAGE_MULTIPLE = 2.0f; // 默认暴击伤害为双倍
-const float LEVEL_UP_ATTR_MULTIPLIER = 1.1f; // 等级提升属性倍率
-const float LEVEL_UP_EXP_MULTIPLIER = 1.2f; // 等级提升经验条倍率
+const float DEFAULT_CRIT_DAMAGE_MULTIPLE = 2.5f; // 默认暴击伤害为双倍
+const float LEVEL_UP_ATTR_MULTIPLIER = 1.5f; // 等级提升属性倍率
+const float LEVEL_UP_EXP_MULTIPLIER = 1.1f; // 等级提升经验条倍率
 
  
 // 恶念将军类型（对应六大恶念）

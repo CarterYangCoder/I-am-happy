@@ -148,29 +148,66 @@ void Game::registerCommands() {
 
     commandHandlers["npc"] = [this](const auto& args) {
         NPC* npc = gameMap.getCurrentRoomNPC();
-        if (npc) {
-            ui.displayMessage("与 " + npc->getName() + " 对话:", UIManager::Color::CYAN);
-            npc->showDialogue();
-            
-            // 检查是否有任务
-            std::string taskId = npc->getTaskID();
-            if (!taskId.empty()) {
-                Task* task = tasks.findTask(taskId);
-                if (task && task->getStatus() == TaskStatus::UNACCEPTED) {
-                    ui.displayMessage("", UIManager::Color::WHITE);
-                    ui.displayMessage("【" + npc->getName() + " 向你发出委托】", UIManager::Color::YELLOW);
-                    ui.displayMessage("任务名：" + task->getName(), UIManager::Color::WHITE);
-                    ui.displayMessage("任务描述：" + task->getDescription(), UIManager::Color::GRAY);
-                    ui.displayMessage("经验奖励：" + std::to_string(task->getExpReward()), UIManager::Color::YELLOW);
-                    ui.displayMessage("金币奖励：" + std::to_string(task->getGoldReward()), UIManager::Color::YELLOW);
-                    ui.displayMessage("", UIManager::Color::WHITE);
-                    ui.displayMessage("是否接受此任务？输入 'task accept " + taskId + "' 来接受任务", UIManager::Color::CYAN);
-                } else if (task && task->getStatus() == TaskStatus::COMPLETED) {
-                    ui.displayMessage("你已完成了 " + npc->getName() + " 的委托，可输入 'task submit " + taskId + "' 提交任务获得奖励", UIManager::Color::GREEN);
+        if (!npc) { ui.displayMessage("这里没有可交互的NPC。", UIManager::Color::GRAY); return; }
+        ui.displayMessage("与你交互的NPC: " + npc->getName(), UIManager::Color::CYAN);
+        npc->showDialogue();
+        int roomId = gameMap.getCurrentRoomId();
+        bool gateForTask3 = (roomId==7 && gameMap.hasEnemyTypeInRoom(7, EnemyType::MINOTAUR));
+        if (gateForTask3 && npc->getName().find("张焜杰")!=std::string::npos) {
+            ui.displayMessage("两只牛头人仍在守卫，先使用 fight 击败它们再与张焜杰对话以解锁任务。", UIManager::Color::RED);
+        }
+        // 试炼完成提示（牛头人已清除，尚未接取任务3）
+        if (!gateForTask3 && roomId==7 && npc->getName().find("张焜杰")!=std::string::npos) {
+            Task* t3 = tasks.findTask("3");
+            if (t3) {
+                bool hasCopy = player.taskProgress.count("3");
+                TaskStatus st = hasCopy ? player.taskProgress["3"].getStatus() : TaskStatus::UNACCEPTED;
+                if ((!hasCopy || st==TaskStatus::UNACCEPTED) && player.getLevel() >= t3->getRequiredLevel()) {
+                    ui.displayMessage("试炼完成！可接取任务3: " + t3->getName() + " 输入: task accept 3", UIManager::Color::GREEN);
                 }
             }
-        } else {
-            ui.displayMessage("这里没有可以对话的NPC。", UIManager::Color::RED);
+        }
+        struct Guide { std::string key; std::string taskId; std::string itemName; int need; std::string route; };
+        static const std::vector<Guide> guides = {
+            {"杨思睿", "1", "黑曜晶尘", 3, "前往裂隙废墟 fight 清除蚀骨恶狼后 pick 黑曜晶尘(3份) 然后再次与NPC对话"},
+            {"晋津津", "2", "铁誓胸甲", 1, "当前房间直接 pick 铁誓胸甲 然后再次与NPC对话"},
+            {"张焜杰", "3", "明识之戒", 1, "当前房间 pick 明识之戒 然后再次与NPC对话"},
+            {"钟志炜", "4", "怜悯之链", 1, "go SE 到 山脚下 pick 怜悯之链 然后再次与NPC对话"},
+            {"王浠珃", "5", "晨曦披风", 1, "当前迷宫房间 pick 晨曦披风 然后再次与NPC对话"},
+            {"周洋迅", "6", "创世战靴", 1, "当前房间 pick 创世战靴 然后再次与NPC对话"}
+        };
+        bool matched=false;
+        for (const auto& g : guides) {
+            if (npc->getName().find(g.key) != std::string::npos) {
+                matched=true;
+                if (g.taskId=="3" && gateForTask3) break; // 阻挡任务3提示
+                Task* task = tasks.findTask(g.taskId);
+                bool hasCopy = player.taskProgress.count(g.taskId);
+                TaskStatus status = hasCopy ? player.taskProgress[g.taskId].getStatus() : TaskStatus::UNACCEPTED;
+                if (!task) { ui.displayMessage("(缺少任务数据:"+g.taskId+")", UIManager::Color::RED); break; }
+                if (!hasCopy || status==TaskStatus::UNACCEPTED) {
+                    if (player.getLevel() < task->getRequiredLevel()) {
+                        ui.displayMessage("需要等级 Lv."+std::to_string(task->getRequiredLevel())+" 才能接取该任务。", UIManager::Color::RED);
+                    } else {
+                        ui.displayMessage("可接取任务" + g.taskId + " " + task->getName() + " 输入: task accept " + g.taskId, UIManager::Color::YELLOW);
+                        ui.displayMessage("步骤: " + g.route, UIManager::Color::GREEN);
+                    }
+                } else if (status==TaskStatus::ACCEPTED) {
+                    auto &inv = player.getInventory(); int have = inv.count(g.itemName)?inv.at(g.itemName):0;
+                    if (g.need>1) ui.displayMessage("进度: " + g.itemName + " " + std::to_string(have) + "/" + std::to_string(g.need), UIManager::Color::CYAN);
+                    if (have < g.need) ui.displayMessage("继续: " + g.route, UIManager::Color::YELLOW); else {
+                        if (task->getStatus()==TaskStatus::ACCEPTED) task->checkCompletion(&player);
+                        if (task->getStatus()==TaskStatus::COMPLETED) { player.taskProgress[g.taskId].setStatus(TaskStatus::COMPLETED); ui.displayMessage("任务已完成，输入: task submit " + g.taskId + " 提交奖励。", UIManager::Color::GREEN);} else ui.displayMessage("已满足数量等待判定，请再次交互。", UIManager::Color::CYAN);
+                    }
+                } else if (status==TaskStatus::COMPLETED) ui.displayMessage("任务待提交: task submit " + g.taskId, UIManager::Color::GREEN);
+                else if (status==TaskStatus::REWARDED) ui.displayMessage("任务已完成并领取奖励。", UIManager::Color::GRAY);
+                break;
+            }
+        }
+        // 兜底：晋津津若未匹配（名字被改动等）
+        if (!matched && npc->getName().find("晋津津")!=std::string::npos) {
+            Task* t2 = tasks.findTask("2"); bool has = player.taskProgress.count("2"); TaskStatus st = has?player.taskProgress["2"].getStatus():TaskStatus::UNACCEPTED;
+            if (!has || st==TaskStatus::UNACCEPTED) ui.displayMessage("可接取任务2 输入: task accept 2", UIManager::Color::YELLOW);
         }
     };
 
@@ -519,21 +556,64 @@ void Game::registerCommands() {
         ui.displayPlayerStatus(player, lastActionMsg);
     };
     commandHandlers["pick"] = [this](const auto& args) {
-        if (args.empty()) {
-            ui.displayMessage("用法: pick <物品名>", UIManager::Color::YELLOW);
-            return;
-        }
+        if (args.empty()) { ui.displayMessage("用法: pick <物品名>", UIManager::Color::YELLOW); return; }
         int roomId = gameMap.getCurrentRoomId();
         auto& room = gameMap.rooms[roomId];
-        std::string itemName = args[0];
+        std::string rawName = args[0];
+        // 统一“黑曜晶尘”与常见误写“黑耀晶尘”
+        bool isObsidianDustAlias = (rawName == "黑曜晶尘" || rawName == "黑耀晶尘");
+        std::string itemName = isObsidianDustAlias ? "黑曜晶尘" : rawName; // 规范化
+        if (isObsidianDustAlias && rawName != itemName) {
+            ui.displayMessage("已自动识别为: 黑曜晶尘", UIManager::Color::GRAY);
+        }
+        // 特殊逻辑：黑曜晶尘需要先击败裂隙废墟(3)的蚀骨恶狼
+        if (itemName == "黑曜晶尘" && roomId == 3) {
+            if (gameMap.hasEnemyTypeInRoom(3, EnemyType::CORRUPT_WOLF)) {
+                ui.displayMessage("蚀骨恶狼仍在守卫，你无法收集黑曜晶尘。先使用 fight 击败它们。", UIManager::Color::RED);
+                return;
+            }
+            if (!gameMap.isObsidianDustSpawned()) {
+                bool exists = std::find(room.items.begin(), room.items.end(), "黑曜晶尘") != room.items.end();
+                if (!exists) {
+                    room.addItem("黑曜晶尘"); room.addItem("黑曜晶尘"); room.addItem("黑曜晶尘");
+                    gameMap.setObsidianDustSpawned(true);
+                    ui.displayMessage("你清除了守卫，3份黑曜晶尘显露出来。", UIManager::Color::GREEN);
+                }
+            }
+        }
         auto& items = room.items;
         auto it = std::find(items.begin(), items.end(), itemName);
         if (it != items.end()) {
-            items.erase(it);
             player.addItemByName(itemName, 1);
-            lastActionMsg = "拾取了 " + itemName;
+            items.erase(it);
+            lastActionMsg = "获得物品: " + itemName;
+            ui.displayMessage("你拾取了: " + itemName, UIManager::Color::GREEN);
+            struct ItemTask { std::string item; std::string taskId; int need; };
+            static const std::vector<ItemTask> itemTasks = {
+                {"黑曜晶尘","1",3}, {"铁誓胸甲","2",1}, {"明识之戒","3",1}, {"怜悯之链","4",1}, {"晨曦披风","5",1}, {"创世战靴","6",1}
+            };
+            for (const auto& itg : itemTasks) if (itemName == itg.item) {
+                Task* task = tasks.findTask(itg.taskId);
+                bool accepted = player.taskProgress.count(itg.taskId) && (player.taskProgress[itg.taskId].getStatus()==TaskStatus::ACCEPTED);
+                int have = player.getInventory().count(itg.item)?player.getInventory().at(itg.item):0;
+                if (itg.need > 1) ui.displayMessage("进度: " + itg.item + " " + std::to_string(have) + "/" + std::to_string(itg.need), UIManager::Color::CYAN);
+                if (accepted && task) {
+                    if (task->getStatus()==TaskStatus::ACCEPTED) task->checkCompletion(&player);
+                    if (task->getStatus()==TaskStatus::COMPLETED) {
+                        player.taskProgress[itg.taskId].setStatus(TaskStatus::COMPLETED);
+                        if (itg.taskId=="1") ui.displayMessage("任务1已完成，回铁砧铁匠铺找杨思睿: task submit 1 获取奖励并自动装备。", UIManager::Color::GREEN);
+                        else ui.displayMessage("任务" + itg.taskId + "已满足条件，输入: task submit " + itg.taskId + " 提交奖励。", UIManager::Color::CYAN);
+                    } else if (task && itg.need>1) ui.displayMessage("继续收集直到完成。", UIManager::Color::YELLOW);
+                } else if (!accepted) {
+                    if (itg.taskId=="1") ui.displayMessage("提示: 回铁砧铁匠铺与杨思睿对话并输入: task accept 1 再收集更有效。", UIManager::Color::YELLOW);
+                    else ui.displayMessage("提示: 可先接取任务" + itg.taskId + " 再拾取同样生效。输入: task accept " + itg.taskId, UIManager::Color::YELLOW);
+                }
+                break;
+            }
         } else {
-            lastActionMsg = "当前房间没有该物品。";
+            // 若用户在狼已清除且未生成时用错误名字尝试，再次友好提醒
+            if (isObsidianDustAlias && roomId==3) ui.displayMessage("未找到黑曜晶尘，请再次输入: pick 黑曜晶尘", UIManager::Color::YELLOW);
+            else ui.displayMessage("这里没有该物品。", UIManager::Color::RED);
         }
         ui.displayPlayerStatus(player, lastActionMsg);
     };

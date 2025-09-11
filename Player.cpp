@@ -145,22 +145,22 @@ void Player::checkAndUnlockSkills() {
     int currentLevel = getLevel();
     
     // 根据等级解锁技能
-    if (currentLevel >= 1 && !getSkill(SkillType::HOLY_RIFT_SLASH)) {
+    if (currentLevel >= 2 && !getSkill(SkillType::HOLY_RIFT_SLASH)) {
         unlockSkill(SkillType::HOLY_RIFT_SLASH);
     }
-    if (currentLevel >= 5 && !getSkill(SkillType::GOLDEN_TREE_VOW)) {
+    if (currentLevel >= 3 && !getSkill(SkillType::GOLDEN_TREE_VOW)) {
         unlockSkill(SkillType::GOLDEN_TREE_VOW);
     }
-    if (currentLevel >= 10 && !getSkill(SkillType::HOLY_PRISON_JUDGMENT)) {
+    if (currentLevel >= 5 && !getSkill(SkillType::HOLY_PRISON_JUDGMENT)) {
         unlockSkill(SkillType::HOLY_PRISON_JUDGMENT);
     }
-    if (currentLevel >= 15 && !getSkill(SkillType::STAR_ARMOR)) {
+    if (currentLevel >= 8 && !getSkill(SkillType::STAR_ARMOR)) {
         unlockSkill(SkillType::STAR_ARMOR);
     }
-    if (currentLevel >= 20 && !getSkill(SkillType::HOLY_MARK_SPEED)) {
+    if (currentLevel >= 10 && !getSkill(SkillType::HOLY_MARK_SPEED)) {
         unlockSkill(SkillType::HOLY_MARK_SPEED);
     }
-    if (currentLevel >= 50 && hasAllSetParts() && !getSkill(SkillType::ULTIMATE_SLAY)) {
+    if (currentLevel >= 15 && hasAllSetParts() && !getSkill(SkillType::ULTIMATE_SLAY)) {
         unlockSkill(SkillType::ULTIMATE_SLAY);
     }
 }
@@ -229,9 +229,9 @@ bool Player::equipFromInventory(const std::string& equipmentName) {
         // 这里只能通过装备名查找，实际项目可用装备数据库
         if (equipmentName == "自由誓约・破枷之冠")
             equip = new Equipment("自由誓约・破枷之冠", EquipmentPart::HELMET, "破除精神枷锁", 10, 5, "抵抗精神控制");
-        else if (equipmentName == "忠诚誓约・铁誓胸甲")
+        else if (equipmentName == "忠诚誓约・铁誓胸甲" || equipmentName == "铁誓胸甲")
             equip = new Equipment("忠诚誓约・铁誓胸甲", EquipmentPart::CHESTPLATE, "忠诚加护", 15, 10, "提升防御");
-        else if (equipmentName == "希望誓约・晨曦披风")
+        else if (equipmentName == "希望誓约・晨曦披风" || equipmentName == "晨曦披风")
             equip = new Equipment("希望誓约・晨曦披风", EquipmentPart::CAPE, "希望加持", 8, 8, "提升速度");
         else if (equipmentName == "怜悯誓约・抚伤之链")
             equip = new Equipment("怜悯誓约・抚伤之链", EquipmentPart::NECKLACE, "怜悯治愈", 5, 5, "提升回血");

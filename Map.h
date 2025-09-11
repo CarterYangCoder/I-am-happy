@@ -23,6 +23,7 @@ private:
     std::map<int, std::unique_ptr<EvilGeneral>> roomBosses;
     std::map<int, std::vector<std::unique_ptr<CommonEnemy>>> roomEnemies;
     int currentRoomId;
+    bool obsidianDustSpawned = false; // 裂隙废墟黑曜晶尘是否已刷新
 
     // 初始化方法
     void initRooms();
@@ -68,6 +69,10 @@ public:
     // 移除已击败的敌人和BOSS
     void removeDefeatedEnemy(CommonEnemy* enemy);
     void removeDefeatedBoss();
+    // 新增：查询房间是否仍存在指定类型敌人（存活）
+    bool hasEnemyTypeInRoom(int roomId, EnemyType type) const;
+    bool isObsidianDustSpawned() const { return obsidianDustSpawned; }
+    void setObsidianDustSpawned(bool v) { obsidianDustSpawned = v; }
 };
 
 #endif // MAP_H

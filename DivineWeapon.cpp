@@ -26,7 +26,7 @@ DivineWeapon* DivineWeapon::clone() const {
 void DivineWeapon::grow(int playerLevel) {
     if (playerLevel > growthLevel) {
         int oldAtk = getAtkBonus();
-        int newAtk = 20 + (playerLevel - 1) * 5; // 基础20攻击力，每级增加5点
+        int newAtk = 20 + (playerLevel - 1) * 8; // 基础20攻击力，每级增加8点
         
         // 更新攻击力加成
         setAtkBonus(newAtk);

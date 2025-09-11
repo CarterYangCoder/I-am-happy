@@ -38,13 +38,10 @@ void Map::initRooms() {
     rooms.insert({ 2, blacksmith });
 
     Room rift(3, "裂隙废墟", "泛着幽蓝微光的古代废墟，地面散落着黑曜晶尘",
-        "收集3份黑曜晶尘可修复装备");
+        "击败守卫的蚀骨恶狼后才能收集黑曜晶尘");
     rift.addExit("W", 2, "铁砧铁匠铺");
     rift.addExit("NE", 4, "黑曜权枢殿");
-    // 添加三份黑曜晶尘
-    rift.addItem("黑曜晶尘");
-    rift.addItem("黑曜晶尘");
-    rift.addItem("黑曜晶尘");
+    // 初始不再直接放置黑曜晶尘，需击败狼后刷新
     rooms.insert({ 3, rift });
 
     Room obsidian(4, "黑曜权枢殿", "黑曜石建造的宏伟殿堂，中央有巨大王座",
@@ -237,6 +234,10 @@ void Map::initEnemies() {
     // 裂隙废墟 - 蚀骨恶狼守卫
     roomEnemies[3].push_back(std::make_unique<CommonEnemy>(EnemyType::CORRUPT_WOLF, 2));
     roomEnemies[3].push_back(std::make_unique<CommonEnemy>(EnemyType::CORRUPT_WOLF, 2));
+    
+    // 残垣断柱 - 新增试炼：两只牛头人，击败后才能接取任务3
+    roomEnemies[7].push_back(std::make_unique<CommonEnemy>(EnemyType::MINOTAUR, 6));
+    roomEnemies[7].push_back(std::make_unique<CommonEnemy>(EnemyType::MINOTAUR, 6));
     
     // 漠心城
     roomEnemies[12].push_back(std::make_unique<CommonEnemy>(EnemyType::ZOMBIE, 8));
@@ -532,4 +533,13 @@ void Map::removeDefeatedEnemy(CommonEnemy* enemy) {
 // 移除已击败的BOSS
 void Map::removeDefeatedBoss() {
     roomBosses.erase(currentRoomId);
+}
+
+bool Map::hasEnemyTypeInRoom(int roomId, EnemyType type) const {
+    auto it = roomEnemies.find(roomId);
+    if (it == roomEnemies.end()) return false;
+    for (auto &ptr : it->second) {
+        if (ptr && ptr->isAlive() && ptr->getType()==type) return true;
+    }
+    return false;
 }

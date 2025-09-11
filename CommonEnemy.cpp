@@ -13,7 +13,7 @@ CommonEnemy::CommonEnemy(EnemyType type, int level)
         setDEF(2 * level);         // 防御力 = 2 * 等级
         setSpeed(10 * level);      // 速度 = 10 * 等级
         setCritRate(0.02f);         // 暴击率 = 2%（0-1范围）
-        expReward = 80 * level;    // 经验奖励 = 80 * 等级
+        expReward = 60 * level;    // 经验奖励 = 60 * 等级
         goldReward = 50 * level;   // 金币奖励 = 50 * 等级
         break;
 
@@ -24,7 +24,7 @@ CommonEnemy::CommonEnemy(EnemyType type, int level)
         setDEF(2 * level);
         setSpeed(5 * level);
         setCritRate(0.02f);
-        expReward = 50 * level;
+        expReward = 70 * level;
         goldReward = 30 * level;
         break;
 
@@ -35,7 +35,7 @@ CommonEnemy::CommonEnemy(EnemyType type, int level)
         setDEF(5 * level);
         setSpeed(3 * level);
         setCritRate(0.02f);
-        expReward = 50 * level;
+        expReward = 70 * level;
         goldReward = 30 * level;
         break;
 

@@ -2,6 +2,14 @@
 #include <cstdlib>
 #include <ctime>
 
+// 小幅度固定加成（在原倍率基础上再叠加）
+static constexpr int LEVEL_UP_FLAT_HP    = 15;   // 每级额外生命
+static constexpr int LEVEL_UP_FLAT_MP    = 6;    // 每级额外蓝量
+static constexpr int LEVEL_UP_FLAT_ATK   = 3;    // 每级额外攻击
+static constexpr int LEVEL_UP_FLAT_DEF   = 2;    // 每级额外防御
+// 速度不直接每级+1，改为每2级+1，避免后期过快
+static constexpr int LEVEL_UP_SPEED_STEP = 2;    // 每满2级额外+1速度
+
 Attribute::Attribute(std::string name, int level)
     : name(name), level(level), hp(100), maxHp(100), mp(50), maxMp(50), atk(10), def(5), speed(5),
     exp(0), expToNextLevel(100), gold(0), critRate(0.05f) {
@@ -64,13 +72,18 @@ bool Attribute::levelUp() {
     while (exp >= expToNextLevel) {
         exp -= expToNextLevel;
         level++;
-        maxHp = static_cast<int>(maxHp * LEVEL_UP_ATTR_MULTIPLIER);
+        // 基础属性倍率成长 + 固定加成
+        maxHp = static_cast<int>(maxHp * LEVEL_UP_ATTR_MULTIPLIER) + LEVEL_UP_FLAT_HP;
         hp = maxHp;
-        maxMp = static_cast<int>(maxMp * LEVEL_UP_ATTR_MULTIPLIER);
+        maxMp = static_cast<int>(maxMp * LEVEL_UP_ATTR_MULTIPLIER) + LEVEL_UP_FLAT_MP;
         mp = maxMp;
-        atk = static_cast<int>(atk * LEVEL_UP_ATTR_MULTIPLIER);
-        def = static_cast<int>(def * LEVEL_UP_ATTR_MULTIPLIER);
+        atk = static_cast<int>(atk * LEVEL_UP_ATTR_MULTIPLIER) + LEVEL_UP_FLAT_ATK;
+        def = static_cast<int>(def * LEVEL_UP_ATTR_MULTIPLIER) + LEVEL_UP_FLAT_DEF;
+        // 速度：倍率后每满2级额外+1（例如2,4,6...）
         speed = static_cast<int>(speed * LEVEL_UP_ATTR_MULTIPLIER);
+        if (level % LEVEL_UP_SPEED_STEP == 0) speed += 1;
+        if (speed < 1) speed = 1;
+        // 下一等级经验需求
         expToNextLevel = static_cast<int>(expToNextLevel * LEVEL_UP_EXP_MULTIPLIER);
     }
     return true;
