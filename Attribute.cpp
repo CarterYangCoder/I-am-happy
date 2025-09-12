@@ -1,4 +1,5 @@
 #include "Attribute.h"
+#include <iostream>
 #include <cstdlib>
 #include <ctime>
 
@@ -68,27 +69,74 @@ void Attribute::setMP(int value) { mp = std::max(0, std::min(value, maxMp)); }
 void Attribute::setMaxMP(int value) { maxMp = std::max(0, value); if (mp > maxMp) mp = maxMp; }
 // 等级提升
 bool Attribute::levelUp() {
-    if (exp < expToNextLevel) return false;
-    while (exp >= expToNextLevel) {
+    if (exp < expToNextLevel || level >= MAX_LEVEL) return false;
+    
+    bool hasLeveledUp = false;
+    
+    while (exp >= expToNextLevel && level < MAX_LEVEL) {
         exp -= expToNextLevel;
         level++;
+        hasLeveledUp = true;
+        
+        // 记录升级前的当前生命值和蓝量，用于计算30%回复
+        int oldHp = hp;
+        int oldMp = mp;
+        
         // 基础属性倍率成长 + 固定加成
         maxHp = static_cast<int>(maxHp * LEVEL_UP_ATTR_MULTIPLIER) + LEVEL_UP_FLAT_HP;
-        hp = maxHp;
         maxMp = static_cast<int>(maxMp * LEVEL_UP_ATTR_MULTIPLIER) + LEVEL_UP_FLAT_MP;
-        mp = maxMp;
         atk = static_cast<int>(atk * LEVEL_UP_ATTR_MULTIPLIER) + LEVEL_UP_FLAT_ATK;
         def = static_cast<int>(def * LEVEL_UP_ATTR_MULTIPLIER) + LEVEL_UP_FLAT_DEF;
+        
         // 速度：倍率后每满2级额外+1（例如2,4,6...）
         speed = static_cast<int>(speed * LEVEL_UP_ATTR_MULTIPLIER);
         if (level % LEVEL_UP_SPEED_STEP == 0) speed += 1;
         if (speed < 1) speed = 1;
-        // 下一等级经验需求
-        expToNextLevel = static_cast<int>(expToNextLevel * LEVEL_UP_EXP_MULTIPLIER);
+        
+        // 设定：升级后回复当前生命值和蓝量的30%
+        int hpRecover = static_cast<int>(oldHp * 0.3f);
+        int mpRecover = static_cast<int>(oldMp * 0.3f);
+        hp = std::min(maxHp, oldHp + hpRecover);
+        mp = std::min(maxMp, oldMp + mpRecover);
+        
+        // 检查是否达到满级
+        if (level >= MAX_LEVEL) {
+            std::cout << "\033[33m════════════════════════════════\033[0m" << std::endl;
+            std::cout << "\033[32m🎉 恭喜！你已达到最高等级 " << MAX_LEVEL << " 级！🎉\033[0m" << std::endl;
+            std::cout << "\033[36m✨ 你的力量已臻于完美，无需再积累经验！ ✨\033[0m" << std::endl;
+            std::cout << "\033[37m神明：\"你已成为真正的传奇英雄！这份力量足以拯救世界！\"\033[0m" << std::endl;
+            std::cout << "\033[35m🌟 满级奖励：全属性最终强化！🌟\033[0m" << std::endl;
+            std::cout << "\033[33m════════════════════════════════\033[0m" << std::endl;
+            
+            // 满级特别奖励：额外属性加成
+            maxHp += 100;
+            maxMp += 50;
+            atk += 20;
+            def += 15;
+            speed += 5;
+            hp = maxHp; // 满级时回满状态
+            mp = maxMp;
+            break; // 达到满级后停止升级
+        } else {
+            // 普通升级提示
+            std::cout << "\033[33m════════════════════════════════\033[0m" << std::endl;
+            std::cout << "\033[32m🎉 恭喜！等级提升到 " << getLevel() << " 级！🎉\033[0m" << std::endl;
+            std::cout << "\033[36m你的属性得到了提升，生命值和蓝量也恢复了一些。\033[0m" << std::endl;
+            std::cout << "\033[37m神明：\"感受到力量的成长了吗，小子！\"\033[0m" << std::endl;
+            std::cout << "\033[33m════════════════════════════════\033[0m" << std::endl;
+            
+            // 下一等级经验需求
+            expToNextLevel = static_cast<int>(expToNextLevel * LEVEL_UP_EXP_MULTIPLIER);
+        }
     }
-    return true;
+    
+    return hasLeveledUp;
 }
 
+// 新增：检查是否已达到满级
+bool Attribute::isMaxLevel() const {
+    return level >= MAX_LEVEL;
+}
 
 bool Attribute::isAlive() const { return hp > 0; }
 

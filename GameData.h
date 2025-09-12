@@ -2,12 +2,20 @@
 #ifndef GAMEDATA_H
 #define GAMEDATA_H
 
-// 核心常量定义（基于剧本设定）
-const float DEFAULT_CRIT_DAMAGE_MULTIPLE = 2.5f; // 默认暴击伤害为双倍
-const float LEVEL_UP_ATTR_MULTIPLIER = 1.5f; // 等级提升属性倍率
+// 核心常量定义
+const float DEFAULT_CRIT_DAMAGE_MULTIPLE = 2.5f; // 暴击伤害为2.5倍
+const float LEVEL_UP_ATTR_MULTIPLIER = 1.15f; // 等级提升属性倍率
 const float LEVEL_UP_EXP_MULTIPLIER = 1.1f; // 等级提升经验条倍率
 
- 
+// 新增：技能默认每级成长系数（线性成长，按解锁等级起算）
+const float DEFAULT_SKILL_GROWTH_PER_LEVEL = 0.6f;
+
+// 新增：技能MP消耗配置（基础值 + 每级成长系数）
+const int   DEFAULT_MP_COST_PHYSICAL = 6;
+const int   DEFAULT_MP_COST_BUFF     = 10; // 包含 BUFF/HOLY_MARK_SPEED/STAR_ARMOR
+const int   DEFAULT_MP_COST_MAGICAL  = 14;
+const float DEFAULT_SKILL_MP_GROWTH_PER_LEVEL = 0.03f; // MP消耗随等级线性增长
+
 // 恶念将军类型（对应六大恶念）
 enum class EvilType {
     POWER_HUNGRY,   // 嗜权（厄休拉）
@@ -37,7 +45,7 @@ enum class SkillType {
     HOLY_PRISON_JUDGMENT,   // 圣狱裁决（魔法伤害）
     STAR_ARMOR,             // 星辰圣铠（防御）
     HOLY_MARK_SPEED,        // 圣痕疾影步（速度up）
-    ULTIMATE_SLAY           // 星闪流河圣龙飞升·神界湮灭斩·最终式（集齐神器解锁）
+    ULTIMATE_SLAY           // 星闪流河圣龙飞升·神界湮灭斩·最终式（集齐套装解锁）
 };
 
 #endif // GAMEDATA_H

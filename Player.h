@@ -16,6 +16,14 @@ private:
     DivineSet divineSet;                        // 六誓圣辉救赎套装
     std::vector<Skill*> skills;                 // 已解锁技能
     int currentRoomId;                          // 当前所在房间ID
+    int physicalShieldTurns;                    // 新增：物理伤害护盾剩余回合数
+    
+    // 新增：临时增益状态管理
+    int speedBoostTurns;                        // 速度增益剩余回合数
+    int speedBoostAmount;                       // 速度增益数值
+    int defenseBoostTurns;                      // 防御增益剩余回合数
+    int defenseBoostAmount;                     // 防御增益数值
+    
 public:
     Player(std::string name = "安特王子");
     ~Player();
@@ -52,11 +60,28 @@ public:
     const std::map<std::string, int>& getInventory() const;
     void clearInventory(); // 添加清空背包方法
 
+    // 新增：物品售卖和丢弃功能
+    bool sellItem(const std::string& itemName, int quantity = 1);
+    bool dropItem(const std::string& itemName, int quantity = 1);
+    bool canSellItem(const std::string& itemName) const;
+    int getItemSellPrice(const std::string& itemName) const;
+
     // 蓝条管理
     int getMP() const { return Attribute::getMP(); }
     int getMaxMP() const { return Attribute::getMaxMP(); }
     void setMP(int value) { Attribute::setMP(value); }
     void setMaxMP(int value) { Attribute::setMaxMP(value); }
+
+    // 新增：物理护盾状态管理
+    int getPhysicalShieldTurns() const { return physicalShieldTurns; }
+    void addPhysicalShieldTurns(int turns) { physicalShieldTurns = std::max(0, physicalShieldTurns + turns); }
+    void consumePhysicalShieldTurn() { if (physicalShieldTurns > 0) --physicalShieldTurns; }
+
+    // 新增：临时增益状态管理
+    void addSpeedBoost(int amount, int turns);
+    void addDefenseBoost(int amount, int turns);
+    void updateBuffTurns();                     // 每回合结束时调用，减少增益剩余时间
+    std::string getBuffStatus() const;          // 获取当前增益状态描述
 
     // 主动穿戴装备（通过装备名）
     bool equipFromInventory(const std::string& equipmentName);

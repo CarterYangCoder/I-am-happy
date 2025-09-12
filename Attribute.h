@@ -4,6 +4,9 @@
 #include <string>
 #include "GameData.h"
 
+// 新增：最大等级常量
+const int MAX_LEVEL = 30;
+
 class Attribute {
 protected:
     std::string name;       // 角色名称
@@ -58,6 +61,9 @@ public:
     void setMaxMP(int value);
     // 等级提升（基于设定：等级+1，属性*110%，经验条*120%）
     virtual bool levelUp();
+    
+    // 新增：检查是否已达到满级
+    bool isMaxLevel() const;
 
     bool isAlive() const;
     void takeDamage(int damage);

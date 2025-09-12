@@ -80,7 +80,8 @@ void TaskSystem::initializeTasks() {
 void TaskSystem::addTask(Task* task) { if (task) allTasks.push_back(task); }
 
 Task* TaskSystem::findTask(std::string id) const {
-    for (auto t : allTasks) if (t->getID() == id) return t; return nullptr;
+    for (auto t : allTasks) if (t->getID() == id) return t;
+    return nullptr; // 修复：原来错误地返回了 nullptr
 }
 
 void TaskSystem::acceptTask(Player* player, std::string taskId) {
@@ -107,30 +108,100 @@ void TaskSystem::update(Player* player) {
 
 void TaskSystem::submitTask(Player* player, std::string taskId) {
     Task* task = findTask(taskId);
-    if (!task) { ui.displayMessage("无效的任务ID。", UIManager::Color::RED); return; }
-    // 玩家是否接取
-    if (!player->taskProgress.count(taskId) || (player->taskProgress[taskId].getStatus() != TaskStatus::ACCEPTED && player->taskProgress[taskId].getStatus() != TaskStatus::COMPLETED)) {
-        ui.displayMessage("未接取该任务。", UIManager::Color::RED); return; }
-
-    // 强制再检测一次完成条件（防止遗漏）
-    if (task->getStatus() == TaskStatus::ACCEPTED) task->checkCompletion(player);
-
-    if (task->getStatus() == TaskStatus::COMPLETED) {
-        int exp = task->getExpReward();
-        int gold = task->getGoldReward();
-        std::string name = task->getName();
-        task->complete(player);
-        autoEquipArtifact(player, taskId);
-        // 同步玩家副本
-        player->taskProgress[taskId].setStatus(TaskStatus::REWARDED);
-        ui.displayMessage("任务 [" + name + "] 完成！", UIManager::Color::GREEN);
-        if (exp>0) ui.displayMessage("获得经验: " + std::to_string(exp), UIManager::Color::YELLOW);
-        if (gold>0) ui.displayMessage("获得金币: " + std::to_string(gold), UIManager::Color::YELLOW);
-    } else if (task->getStatus() == TaskStatus::REWARDED) {
-        ui.displayMessage("该任务奖励已领取。", UIManager::Color::YELLOW);
-    } else {
-        ui.displayMessage("任务尚未完成。", UIManager::Color::RED);
+    if (!task) {
+        ui.displayMessage("任务不存在。", UIManager::Color::RED);
+        return;
     }
+
+    // 检查玩家是否有此任务的进度记录
+    if (player->taskProgress.find(taskId) == player->taskProgress.end()) {
+        ui.displayMessage("你还没有接取这个任务。", UIManager::Color::RED);
+        return;
+    }
+
+    Task& playerTask = player->taskProgress[taskId];
+    if (playerTask.getStatus() != TaskStatus::COMPLETED) {
+        ui.displayMessage("任务尚未完成，无法提交。", UIManager::Color::RED);
+        return;
+    }
+
+    // 任务1特殊处理：消耗黑曜晶尘材料
+    if (taskId == "1") {
+        int dustCount = player->getInventory().count("黑曜晶尘") ? player->getInventory().at("黑曜晶尘") : 0;
+        if (dustCount < 3) {
+            ui.displayMessage("黑曜晶尘不足！需要3份黑曜晶尘。", UIManager::Color::RED);
+            return;
+        }
+        // 消耗材料
+        for (int i = 0; i < 3; i++) {
+            player->useItem("黑曜晶尘");
+        }
+        ui.displayMessage("杨思睿使用了3份黑曜晶尘修复皇冠！", UIManager::Color::CYAN);
+    }
+
+    // 任务2特殊处理：消耗铁誓胸甲
+    if (taskId == "2") {
+        int chestCount = player->getInventory().count("铁誓胸甲") ? player->getInventory().at("铁誓胸甲") : 0;
+        if (chestCount < 1) {
+            ui.displayMessage("没有铁誓胸甲进行解封仪式！", UIManager::Color::RED);
+            return;
+        }
+        // 消耗胸甲（解封仪式中被净化改造）
+        player->useItem("铁誓胸甲");
+        ui.displayMessage("铁誓胸甲在解封仪式中被净化，重获新生！", UIManager::Color::CYAN);
+    }
+
+    // 其他任务的材料消耗
+    if (taskId == "3") {
+        int ringCount = player->getInventory().count("明识之戒") ? player->getInventory().at("明识之戒") : 0;
+        if (ringCount < 1) {
+            ui.displayMessage("没有明识之戒！", UIManager::Color::RED);
+            return;
+        }
+        player->useItem("明识之戒");
+        ui.displayMessage("明识之戒被激活，融入你的灵魂！", UIManager::Color::CYAN);
+    }
+
+    if (taskId == "4") {
+        int chainCount = player->getInventory().count("怜悯之链") ? player->getInventory().at("怜悯之链") : 0;
+        if (chainCount < 1) {
+            ui.displayMessage("没有怜悯之链！", UIManager::Color::RED);
+            return;
+        }
+        player->useItem("怜悯之链");
+        ui.displayMessage("怜悯之链绽放出温暖的光芒，与你合为一体！", UIManager::Color::CYAN);
+    }
+
+    if (taskId == "5") {
+        int capeCount = player->getInventory().count("晨曦披风") ? player->getInventory().at("晨曦披风") : 0;
+        if (capeCount < 1) {
+            ui.displayMessage("没有晨曦披风！", UIManager::Color::RED);
+            return;
+        }
+        player->useItem("晨曦披风");
+        ui.displayMessage("晨曦披风化作希望之光，笼罩在你的身上！", UIManager::Color::CYAN);
+    }
+
+    if (taskId == "6") {
+        int bootsCount = player->getInventory().count("创世战靴") ? player->getInventory().at("创世战靴") : 0;
+        if (bootsCount < 1) {
+            ui.displayMessage("没有创世战靴！", UIManager::Color::RED);
+            return;
+        }
+        player->useItem("创世战靴");
+        ui.displayMessage("创世战靴与大地共鸣，成为你身体的一部分！", UIManager::Color::CYAN);
+    }
+
+    // 完成任务提交
+    task->complete(player);
+    playerTask.setStatus(TaskStatus::REWARDED);
+    
+    ui.displayMessage("任务「" + task->getName() + "」提交成功！", UIManager::Color::GREEN);
+    ui.displayMessage("获得经验: " + std::to_string(task->getExpReward()), UIManager::Color::YELLOW);
+    ui.displayMessage("获得金币: " + std::to_string(task->getGoldReward()), UIManager::Color::YELLOW);
+
+    // 自动装备神器
+    autoEquipArtifact(player, taskId);
 }
 
 void TaskSystem::showTaskList(Player* player) const {

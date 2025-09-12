@@ -9,25 +9,34 @@ bool is_digits_game(const std::string& str) {
 }
  
 // Game类的构造函数
-Game::Game() :
-    player("安特王子"),
+Game::Game(bool loadFromSave, Player* loadedPlayer) :
+    player(loadedPlayer ? *loadedPlayer : Player("安特王子")),
     gameMap(),              // 初始化地图
     combat(ui),
     tasks(ui),
     shop(ui),
     saveLoad(ui),
     isRunning(true),
-    currentState(GameState::Exploring)
+    currentState(GameState::Exploring),
+    startedFromSave(loadFromSave)
 {
     // 设置控制台编码以支持中文显示
     SetConsoleCP(CP_UTF8);
     SetConsoleOutputCP(CP_UTF8);
-    // 同步玩家和地图的位置
-    player.setCurrentRoomId(gameMap.getCurrentRoomId());
+    
+    // 如果从存档启动，同步地图位置
+    if (startedFromSave && loadedPlayer) {
+        gameMap.setCurrentRoomId(loadedPlayer->getCurrentRoomId());
+        player.setCurrentRoomId(loadedPlayer->getCurrentRoomId());
+    } else {
+        // 同步玩家和地图的位置
+        player.setCurrentRoomId(gameMap.getCurrentRoomId());
+    }
     
     // 初始化物品数据库
     itemDb[1] = std::make_unique<HealthPotion>();
     itemDb[2] = std::make_unique<EnergyPotion>();
+    itemDb[3] = std::make_unique<MysteriousItem>();
 
     tasks.initializeTasks();
     shop.initializeShop();
@@ -37,11 +46,21 @@ Game::Game() :
 
 // 游戏主循环
 void Game::run() {
-    ui.displayMessage("欢迎来到MUD世界, " + player.getName() + "!", UIManager::Color::CYAN);
-    ui.displayMessage("输入 'help' 或 '帮助' 查看可用命令。", UIManager::Color::YELLOW);
-    
-    // 显示初始房间信息
-    gameMap.showInitialRoom();
+    if (!startedFromSave) {
+        ui.displayMessage("欢迎来到MUD世界, " + player.getName() + "!", UIManager::Color::CYAN);
+        ui.displayMessage("输入 'help' 或 '帮助' 查看可用命令。", UIManager::Color::YELLOW);
+        
+        // 显示初始房间信息
+        gameMap.showInitialRoom();
+    } else {
+        ui.displayMessage("欢迎回来, " + player.getName() + "!", UIManager::Color::CYAN);
+        ui.displayMessage("存档已加载，继续你的冒险吧！", UIManager::Color::GREEN);
+        ui.displayMessage("输入 'help' 或 '帮助' 查看可用命令。", UIManager::Color::YELLOW);
+        
+        // 显示当前房间信息
+        gameMap.showCurrentRoom();
+        ui.displayPlayerStatus(player);
+    }
 
     while (isRunning) {
         Command cmd = parser.getCommand();
@@ -88,6 +107,16 @@ void Game::setupCommandAliases() {
     commandAliases["东北"] = "go"; commandAliases["西南"] = "go";
     commandAliases["东南"] = "go"; commandAliases["西北"] = "go";
     commandAliases["上"] = "go"; commandAliases["下"] = "go";
+    // 设置别名
+    commandAliases["get"] = "pick";
+    commandAliases["拾取"] = "pick";
+    commandAliases["sell"] = "sell";
+    commandAliases["售卖"] = "sell";
+    commandAliases["drop"] = "drop";
+    commandAliases["丢弃"] = "drop";
+    commandAliases["skill"] = "skill";
+    commandAliases["技能"] = "skill";
+    commandAliases["sk"] = "skill";
 }
 
 // 将别名或大小写命令转换为标准命令
@@ -110,7 +139,10 @@ void Game::registerCommands() {
         ui.displayMessage("战斗命令: fight(f,战斗) - 挑战当前区域的敌人", UIManager::Color::RED);
         ui.displayMessage("任务命令: task(t,任务) [list/accept <ID>/submit <ID>]", UIManager::Color::YELLOW);
         ui.displayMessage("物品命令: use <物品名> - 使用道具，如 use 生命药水", UIManager::Color::GREEN);
+        ui.displayMessage("  pick <物品名>(拾取) - 拾取物品, sell <物品名>(售卖) - 售卖物品", UIManager::Color::GREEN);
+        ui.displayMessage("  drop <物品名>(丢弃) - 丢弃物品到当前区域", UIManager::Color::GREEN);
         ui.displayMessage("装备命令: wear <装备名> - 穿戴装备，如 wear 铁誓胸甲", UIManager::Color::GREEN);
+        ui.displayMessage("技能命令: skill(sk,技能) [技能名] - 查看技能列表或详细信息", UIManager::Color::BLUE);
         ui.displayMessage("商店命令: shop(sh,商店), buy(b,购买) <ID>[*数量], leave(le,离开)", UIManager::Color::GREEN);
         ui.displayMessage("存档命令: save(sa,存档), load(lo,读档)", UIManager::Color::MAGENTA);
         if (currentState == GameState::InShop) {
@@ -133,6 +165,13 @@ void Game::registerCommands() {
     };
 
     commandHandlers["go"] = [this](const auto& args) {
+        if (currentState == GameState::InShop) {
+            ui.displayMessage("你现在在商店中，无法移动。", UIManager::Color::YELLOW);
+            ui.displayMessage("请先输入 'leave' 或 '离开' 退出商店。", UIManager::Color::CYAN);
+            ui.displayMessage("商人：\"客官，买完东西再走嘛~ (￣▽￣)ノ\"", UIManager::Color::WHITE);
+            return;
+        }
+        
         if (args.empty()) {
             ui.displayMessage("用法: go <方向> (如：go 东北, go 2)", UIManager::Color::YELLOW);
             ui.displayMessage("方向编号: 1=北 2=东北 3=东 4=东南 5=南 6=西南 7=西 8=西北 9=上 0=下", UIManager::Color::GRAY);
@@ -147,16 +186,64 @@ void Game::registerCommands() {
     };
 
     commandHandlers["npc"] = [this](const auto& args) {
+        if (currentState == GameState::InShop) {
+            ui.displayMessage("你现在在商店中，无法与其他NPC对话。", UIManager::Color::YELLOW);
+            ui.displayMessage("请先输入 'leave' 或 '离开' 退出商店。", UIManager::Color::CYAN);
+            ui.displayMessage("商人：\"专心购物嘛，其他人等等再聊~ (￣▽￣)ノ\"", UIManager::Color::WHITE);
+            return;
+        }
+        
         NPC* npc = gameMap.getCurrentRoomNPC();
         if (!npc) { ui.displayMessage("这里没有可交互的NPC。", UIManager::Color::GRAY); return; }
-        ui.displayMessage("与你交互的NPC: " + npc->getName(), UIManager::Color::CYAN);
-        npc->showDialogue();
+        
+        // 优先检查：张焜杰的牛头人试炼门禁（在对话前检查）
         int roomId = gameMap.getCurrentRoomId();
         bool gateForTask3 = (roomId==7 && gameMap.hasEnemyTypeInRoom(7, EnemyType::MINOTAUR));
         if (gateForTask3 && npc->getName().find("张焜杰")!=std::string::npos) {
             ui.displayMessage("两只牛头人仍在守卫，先使用 fight 击败它们再与张焜杰对话以解锁任务。", UIManager::Color::RED);
+            return;
         }
-        // 试炼完成提示（牛头人已清除，尚未接取任务3）
+        
+        // 检查任务状态和是否首次见面
+        std::string taskId = npc->getTaskID();
+        TaskStatus taskStatus = TaskStatus::UNACCEPTED;
+        bool hasMetBefore = false;
+        
+        if (!taskId.empty() && player.taskProgress.count(taskId)) {
+            taskStatus = player.taskProgress[taskId].getStatus();
+            hasMetBefore = true;
+        }
+        
+        // 显示对应状态的对话
+        npc->showDialogueByStatus(ui, taskStatus, hasMetBefore);
+
+        // 在对话后添加任务状态相关的提示
+        if (!taskId.empty() && hasMetBefore) {
+            if (taskStatus == TaskStatus::COMPLETED) {
+                ui.displayMessage("", UIManager::Color::WHITE); // 空行分隔
+                ui.displayMessage("任务已完成！输入: task submit " + taskId + " 来提交任务并获取奖励", UIManager::Color::GREEN);
+            }
+        }
+
+        // 晋津津任务2的"解封仪式"自动触发与提交
+        if (npc->getName().find("晋津津") != std::string::npos) {
+            Task* t2 = tasks.findTask("2");
+            if (t2) {
+                bool hasCopy = player.taskProgress.count("2");
+                TaskStatus st = hasCopy ? player.taskProgress["2"].getStatus() : TaskStatus::UNACCEPTED;
+                int haveChest = player.getInventory().count("铁誓胸甲") ? player.getInventory().at("铁誓胸甲") : 0;
+                if ((st == TaskStatus::ACCEPTED || st == TaskStatus::COMPLETED) && haveChest >= 1) {
+                    ui.displayMessage("【解封仪式】晋津津将你的手按在胸甲之上，古老誓文在空气中回响……", UIManager::Color::CYAN);
+                    ui.displayMessage("鲜血涌动，三千忠魂掠过你的视野，怨念消散为点点星光。", UIManager::Color::WHITE);
+                    if (t2->getStatus() == TaskStatus::ACCEPTED) { t2->checkCompletion(&player); }
+                    tasks.submitTask(&player, "2");
+                    ui.displayMessage("解封仪式完成。忠魂得以安息。", UIManager::Color::GREEN);
+                    return;
+                }
+            }
+        }
+
+        // 试炼完成提示（牛头人已清除，尚未接取任务3）- 移到牛头人检查后
         if (!gateForTask3 && roomId==7 && npc->getName().find("张焜杰")!=std::string::npos) {
             Task* t3 = tasks.findTask("3");
             if (t3) {
@@ -167,53 +254,28 @@ void Game::registerCommands() {
                 }
             }
         }
-        struct Guide { std::string key; std::string taskId; std::string itemName; int need; std::string route; };
-        static const std::vector<Guide> guides = {
-            {"杨思睿", "1", "黑曜晶尘", 3, "前往裂隙废墟 fight 清除蚀骨恶狼后 pick 黑曜晶尘(3份) 然后再次与NPC对话"},
-            {"晋津津", "2", "铁誓胸甲", 1, "当前房间直接 pick 铁誓胸甲 然后再次与NPC对话"},
-            {"张焜杰", "3", "明识之戒", 1, "当前房间 pick 明识之戒 然后再次与NPC对话"},
-            {"钟志炜", "4", "怜悯之链", 1, "go SE 到 山脚下 pick 怜悯之链 然后再次与NPC对话"},
-            {"王浠珃", "5", "晨曦披风", 1, "当前迷宫房间 pick 晨曦披风 然后再次与NPC对话"},
-            {"周洋迅", "6", "创世战靴", 1, "当前房间 pick 创世战靴 然后再次与NPC对话"}
-        };
-        bool matched=false;
-        for (const auto& g : guides) {
-            if (npc->getName().find(g.key) != std::string::npos) {
-                matched=true;
-                if (g.taskId=="3" && gateForTask3) break; // 阻挡任务3提示
-                Task* task = tasks.findTask(g.taskId);
-                bool hasCopy = player.taskProgress.count(g.taskId);
-                TaskStatus status = hasCopy ? player.taskProgress[g.taskId].getStatus() : TaskStatus::UNACCEPTED;
-                if (!task) { ui.displayMessage("(缺少任务数据:"+g.taskId+")", UIManager::Color::RED); break; }
-                if (!hasCopy || status==TaskStatus::UNACCEPTED) {
-                    if (player.getLevel() < task->getRequiredLevel()) {
-                        ui.displayMessage("需要等级 Lv."+std::to_string(task->getRequiredLevel())+" 才能接取该任务。", UIManager::Color::RED);
-                    } else {
-                        ui.displayMessage("可接取任务" + g.taskId + " " + task->getName() + " 输入: task accept " + g.taskId, UIManager::Color::YELLOW);
-                        ui.displayMessage("步骤: " + g.route, UIManager::Color::GREEN);
-                    }
-                } else if (status==TaskStatus::ACCEPTED) {
-                    auto &inv = player.getInventory(); int have = inv.count(g.itemName)?inv.at(g.itemName):0;
-                    if (g.need>1) ui.displayMessage("进度: " + g.itemName + " " + std::to_string(have) + "/" + std::to_string(g.need), UIManager::Color::CYAN);
-                    if (have < g.need) ui.displayMessage("继续: " + g.route, UIManager::Color::YELLOW); else {
-                        if (task->getStatus()==TaskStatus::ACCEPTED) task->checkCompletion(&player);
-                        if (task->getStatus()==TaskStatus::COMPLETED) { player.taskProgress[g.taskId].setStatus(TaskStatus::COMPLETED); ui.displayMessage("任务已完成，输入: task submit " + g.taskId + " 提交奖励。", UIManager::Color::GREEN);} else ui.displayMessage("已满足数量等待判定，请再次交互。", UIManager::Color::CYAN);
-                    }
-                } else if (status==TaskStatus::COMPLETED) ui.displayMessage("任务待提交: task submit " + g.taskId, UIManager::Color::GREEN);
-                else if (status==TaskStatus::REWARDED) ui.displayMessage("任务已完成并领取奖励。", UIManager::Color::GRAY);
-                break;
+        
+        // 简化的任务引导提示（只在首次见面或未接取时显示）
+        if (!hasMetBefore || taskStatus == TaskStatus::UNACCEPTED) {
+            Task* task = tasks.findTask(taskId);
+            if (task && player.getLevel() >= task->getRequiredLevel()) {
+                // 张焜杰的任务引导已在上面处理，这里跳过
+                if (!(roomId==7 && npc->getName().find("张焜杰")!=std::string::npos)) {
+                    ui.displayMessage("可接取任务" + taskId + " " + task->getName() + " 输入: task accept " + taskId, UIManager::Color::YELLOW);
+                }
             }
-        }
-        // 兜底：晋津津若未匹配（名字被改动等）
-        if (!matched && npc->getName().find("晋津津")!=std::string::npos) {
-            Task* t2 = tasks.findTask("2"); bool has = player.taskProgress.count("2"); TaskStatus st = has?player.taskProgress["2"].getStatus():TaskStatus::UNACCEPTED;
-            if (!has || st==TaskStatus::UNACCEPTED) ui.displayMessage("可接取任务2 输入: task accept 2", UIManager::Color::YELLOW);
         }
     };
 
     commandHandlers["fight"] = [this](const auto& args) {
         if (currentState != GameState::Exploring) { 
-            ui.displayMessage("你现在不能战斗。", UIManager::Color::RED); 
+            if (currentState == GameState::InShop) {
+                ui.displayMessage("你现在在商店中，无法战斗。", UIManager::Color::YELLOW);
+                ui.displayMessage("请先输入 'leave' 或 '离开' 退出商店，再进行战斗。", UIManager::Color::CYAN);
+                ui.displayMessage("商人：\"客官，店内不可动武哦~ (￣▽￣)ノ\"", UIManager::Color::WHITE);
+            } else {
+                ui.displayMessage("你现在不能战斗。", UIManager::Color::RED);
+            }
             return; 
         }
 
@@ -362,7 +424,7 @@ void Game::registerCommands() {
                     tasks.updateTaskProgress(&player, "击败" + enemy->getName());
                     gameMap.removeDefeatedEnemy(enemy);
                     
-                    ui.displayMessage("战斗胜利！", UIManager::Color::GREEN);
+                    // 删除重复的胜利提示，CombatSystem 已经显示了
                     currentState = GameState::Exploring;  // 恢复探索状态
                     break; // 改为break而不是return
 
@@ -411,6 +473,13 @@ void Game::registerCommands() {
 
     // 任务系统命令
     commandHandlers["task"] = [this](const auto& args) {
+        if (currentState == GameState::InShop) {
+            ui.displayMessage("你现在在商店中，无法管理任务。", UIManager::Color::YELLOW);
+            ui.displayMessage("请先输入 'leave' 或 '离开' 退出商店。", UIManager::Color::CYAN);
+            ui.displayMessage("商人：\"先把生意做完，任务的事儿出去再说~ (￣▽￣)ノ\"", UIManager::Color::WHITE);
+            return;
+        }
+        
         if (args.empty()) {
             tasks.showPlayerTasks(player);
         } else if (args[0] == "list") {
@@ -524,10 +593,16 @@ void Game::registerCommands() {
             lastActionMsg = "使用了生命药水，回复了 " + std::to_string(healAmount) + " 点生命值。";
             ui.displayMessage(lastActionMsg, UIManager::Color::GREEN);
         } else if (itemName == "能量药水") {
-            player.extraActionTurns += 1;
+            int mpRecoverAmount = player.getMP() * 0.5;
+            player.setMP(player.getMP() + mpRecoverAmount);
             player.useItem(itemName);
-            lastActionMsg = "使用了能量药水，下个回合可多行动一次。";
-            ui.displayMessage(lastActionMsg, UIManager::Color::GREEN);
+            lastActionMsg = "使用了能量药水，回复了 " + std::to_string(mpRecoverAmount) + " 点蓝量。";
+            ui.displayMessage(lastActionMsg, UIManager::Color::CYAN);
+        } else if (itemName == "神秘商品") {
+            std::string result = itemDb[3]->use();
+            player.useItem(itemName);
+            lastActionMsg = result;
+            ui.displayMessage(lastActionMsg, UIManager::Color::YELLOW);
         } else {
             if (player.equipFromInventory(itemName)) {
                 lastActionMsg = "成功穿戴装备: " + itemName;
@@ -556,11 +631,18 @@ void Game::registerCommands() {
         ui.displayPlayerStatus(player, lastActionMsg);
     };
     commandHandlers["pick"] = [this](const auto& args) {
+        if (currentState == GameState::InShop) {
+            ui.displayMessage("你现在在商店中，无法拾取物品。", UIManager::Color::YELLOW);
+            ui.displayMessage("请先输入 'leave' 或 '离开' 退出商店。", UIManager::Color::CYAN);
+            ui.displayMessage("商人：\"店里的东西要花钱买哦，不能白拿~ (￣▽￣)ノ\"", UIManager::Color::WHITE);
+            return;
+        }
+        
         if (args.empty()) { ui.displayMessage("用法: pick <物品名>", UIManager::Color::YELLOW); return; }
         int roomId = gameMap.getCurrentRoomId();
         auto& room = gameMap.rooms[roomId];
         std::string rawName = args[0];
-        // 统一“黑曜晶尘”与常见误写“黑耀晶尘”
+        // 统一"黑曜晶尘"与常见误写"黑耀晶尘"
         bool isObsidianDustAlias = (rawName == "黑曜晶尘" || rawName == "黑耀晶尘");
         std::string itemName = isObsidianDustAlias ? "黑曜晶尘" : rawName; // 规范化
         if (isObsidianDustAlias && rawName != itemName) {
@@ -611,13 +693,148 @@ void Game::registerCommands() {
                 break;
             }
         } else {
-            // 若用户在狼已清除且未生成时用错误名字尝试，再次友好提醒
-            if (isObsidianDustAlias && roomId==3) ui.displayMessage("未找到黑曜晶尘，请再次输入: pick 黑曜晶尘", UIManager::Color::YELLOW);
-            else ui.displayMessage("这里没有该物品。", UIManager::Color::RED);
+            ui.displayMessage("这里没有该物品。", UIManager::Color::RED);
         }
         ui.displayPlayerStatus(player, lastActionMsg);
     };
     
+    commandHandlers["sell"] = [this](const auto& args) {
+        if (currentState == GameState::InShop) {
+            ui.displayMessage("你现在在商店中，暂时无法向商人售卖物品。", UIManager::Color::YELLOW);
+            ui.displayMessage("请先输入 'leave' 或 '离开' 退出商店，然后使用sell命令。", UIManager::Color::CYAN);
+            ui.displayMessage("商人：\"我这儿只卖不收，出去找别人卖吧~ (￣▽￣)ノ\"", UIManager::Color::WHITE);
+            return;
+        }
+        
+        if (args.empty()) {
+            ui.displayMessage("用法: sell <物品名> [数量]", UIManager::Color::YELLOW);
+            return;
+        }
+        
+        std::string itemName = args[0];
+        int quantity = 1;
+        if (args.size() > 1) {
+            try {
+                quantity = std::stoi(args[1]);
+                if (quantity <= 0) {
+                    ui.displayMessage("数量必须大于0。", UIManager::Color::RED);
+                    return;
+                }
+            } catch (const std::exception&) {
+                ui.displayMessage("无效的数量格式。", UIManager::Color::RED);
+                return;
+            }
+        }
+        
+        if (!player.getInventory().count(itemName) || player.getInventory().at(itemName) < quantity) {
+            ui.displayMessage("背包中没有足够的该物品。", UIManager::Color::RED);
+            return;
+        }
+        
+        if (!player.canSellItem(itemName)) {
+            ui.displayMessage("该物品不可售卖，但可以丢弃。输入: drop " + itemName, UIManager::Color::YELLOW);
+            return;
+        }
+        
+        int sellPrice = player.getItemSellPrice(itemName) * quantity;
+        if (player.sellItem(itemName, quantity)) {
+            lastActionMsg = "售卖了 " + std::to_string(quantity) + " 个 " + itemName + "，获得 " + std::to_string(sellPrice) + " 金币。";
+            ui.displayMessage(lastActionMsg, UIManager::Color::GREEN);
+        } else {
+            ui.displayMessage("售卖失败。", UIManager::Color::RED);
+        }
+        ui.displayPlayerStatus(player, lastActionMsg);
+    };
+
+    commandHandlers["drop"] = [this](const auto& args) {
+        if (currentState == GameState::InShop) {
+            ui.displayMessage("你现在在商店中，不能随便丢弃物品。", UIManager::Color::YELLOW);
+            ui.displayMessage("请先输入 'leave' 或 '离开' 退出商店。", UIManager::Color::CYAN);
+            ui.displayMessage("商人：\"别把垃圾扔我店里！要丢东西出去丢~ (￣▽￣)ノ\"", UIManager::Color::WHITE);
+            return;
+        }
+        
+        if (args.empty()) {
+            ui.displayMessage("用法: drop <物品名> [数量]", UIManager::Color::YELLOW);
+            return;
+        }
+        
+        std::string itemName = args[0];
+        int quantity = 1;
+        if (args.size() > 1) {
+            try {
+                quantity = std::stoi(args[1]);
+                if (quantity <= 0) {
+                    ui.displayMessage("数量必须大于0。", UIManager::Color::RED);
+                    return;
+                }
+            } catch (const std::exception&) {
+                ui.displayMessage("无效的数量格式。", UIManager::Color::RED);
+                return;
+            }
+        }
+        
+        if (!player.getInventory().count(itemName) || player.getInventory().at(itemName) < quantity) {
+            ui.displayMessage("背包中没有足够的该物品。", UIManager::Color::RED);
+            return;
+        }
+        
+        if (player.dropItem(itemName, quantity)) {
+            // 将物品添加到当前房间
+            int roomId = gameMap.getCurrentRoomId();
+            for (int i = 0; i < quantity; i++) {
+                gameMap.rooms[roomId].addItem(itemName);
+            }
+            lastActionMsg = "丢弃了 " + std::to_string(quantity) + " 个 " + itemName + "。";
+            ui.displayMessage(lastActionMsg, UIManager::Color::GREEN);
+            ui.displayMessage("物品已丢弃在当前区域，可以重新拾取。", UIManager::Color::GRAY);
+        } else {
+            ui.displayMessage("丢弃失败。", UIManager::Color::RED);
+        }
+        ui.displayPlayerStatus(player, lastActionMsg);
+    };
+
+    commandHandlers["skill"] = [this](const auto& args) {
+        if (player.getSkills().empty()) {
+            ui.displayMessage("你还没有学会任何技能。", UIManager::Color::YELLOW);
+            ui.displayMessage("通过升级可以解锁新技能！", UIManager::Color::GRAY);
+            return;
+        }
+        
+        if (args.empty()) {
+            // 显示技能列表
+            ui.displayMessage("=== 已解锁技能列表 ===", UIManager::Color::CYAN);
+            for (size_t i = 0; i < player.getSkills().size(); ++i) {
+                const auto& skill = player.getSkills()[i];
+                int scaledPower = skill->getScaledPower(player.getLevel());
+                int mpCost = skill->getMpCost(player.getLevel());
+                ui.displayMessage("[" + std::to_string(i + 1) + "] " + skill->getName() + 
+                                  " (威力:" + std::to_string(scaledPower) + 
+                                  " | MP:" + std::to_string(mpCost) + ")", UIManager::Color::WHITE);
+            }
+            ui.displayMessage("输入 'skill <技能名>' 查看详细信息", UIManager::Color::GRAY);
+            ui.displayMessage("当前增益状态: " + player.getBuffStatus(), UIManager::Color::YELLOW);
+        } else {
+            // 显示指定技能的详细信息
+            std::string targetSkillName = args[0];
+            bool found = false;
+            
+            for (const auto& skill : player.getSkills()) {
+                if (skill->getName().find(targetSkillName) != std::string::npos || 
+                    targetSkillName == skill->getName()) {
+                    ui.displayMessage(skill->getDetailedDescription(player.getLevel()), UIManager::Color::WHITE);
+                    found = true;
+                    break;
+                }
+            }
+            
+            if (!found) {
+                ui.displayMessage("未找到技能: " + targetSkillName, UIManager::Color::RED);
+                ui.displayMessage("输入 'skill' 查看所有已解锁技能", UIManager::Color::GRAY);
+            }
+        }
+    };
+
     // 调试命令
     commandHandlers["debug"] = [this](const auto& args) {
         int roomId = gameMap.getCurrentRoomId();
@@ -633,8 +850,4 @@ void Game::registerCommands() {
             }
         }
     };
-    
-    // 设置别名
-    commandAliases["get"] = "pick";
-    commandAliases["拾取"] = "pick";
 }

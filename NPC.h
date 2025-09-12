@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include "TaskSystem.h"
+#include "UIManager.h"
 
 // NPC类型（基于剧本中的角色）
 enum class NPCType {
@@ -19,19 +20,27 @@ class NPC {
 private:
     std::string name;
     NPCType type;
-    std::vector<std::string> dialogues;         // 对话内容
-    std::string taskID;                         // 可发放的任务ID
+    std::vector<std::string> firstMeetingDialogues;    // 首次见面对话
+    std::vector<std::string> taskIncompleteDialogues;  // 任务未完成时的对话
+    std::vector<std::string> taskCompleteDialogues;    // 任务完成时的对话
+    std::vector<std::string> taskRewardedDialogues;    // 任务已领奖后的对话
+    std::string taskID;                                // 可发放的任务ID
 
 public:
-    NPC(std::string name, NPCType type, std::vector<std::string> dialogues, std::string taskID = "");
+    NPC(std::string name, NPCType type, 
+        std::vector<std::string> firstDialogues,
+        std::vector<std::string> incompleteDialogues,
+        std::vector<std::string> completeDialogues,
+        std::vector<std::string> rewardedDialogues,
+        std::string taskID = "");
 
     // 基础信息
     std::string getName() const;
     NPCType getType() const;
 
-    // 交互
-    void showDialogue() const;                  // 显示对话
-    std::string getTaskID() const;              // 获取可发放任务ID
+    // 根据任务状态显示对应对话
+    void showDialogueByStatus(UIManager& ui, TaskStatus status, bool hasMetBefore) const;
+    std::string getTaskID() const;
 };
 
 #endif // NPC_H

@@ -2,18 +2,6 @@
 #include <iostream>
 #include "Skills.h"
 
-// DivineWeapon构造函数实现（根据头文件中的声明）
-// 如果头文件中有特定的构造函数声明，请确保这里的实现匹配
-
-// 默认构造函数实现（如果头文件中有声明） 
-// DivineWeapon::DivineWeapon() : Item("神器", 1000, "传说中的神器", 0) {
-// }
-
-// 带参数的构造函数实现（如果头文件中有声明）
-// DivineWeapon::DivineWeapon(std::string name, int value, std::string desc, int id) 
-//     : Item(name, value, desc, id) {
-// }
-
 DivineWeapon::DivineWeapon() 
     : Equipment("六圣裁恶神剑", EquipmentPart::SWORD, "传说中的神器，随使用者成长", 20, 5, "神圣力量"),
       growthLevel(1) {}
@@ -32,8 +20,8 @@ void DivineWeapon::grow(int playerLevel) {
         setAtkBonus(newAtk);
         
         growthLevel = playerLevel;
-        std::cout << "六圣裁恶神剑随着你的成长而变得更加强大！攻击力从 " 
-                  << oldAtk << " 提升到 " << newAtk << std::endl;
+        std::cout << "\033[36m⚔️ 升级后，铁匠杨思睿为你的神剑附魔，神剑威力更强了！\033[0m" << std::endl;
+        std::cout << "\033[31m🗡️ 攻击力从 " << oldAtk << " 提升到 " << newAtk << "\033[0m" << std::endl;
     }
 }
 

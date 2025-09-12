@@ -1,4 +1,6 @@
 #include "Game.h"
+#include "MainMenu.h"
+#include "TaskSystem.h"
 #include <iostream>
 #include <windows.h>
 
@@ -19,7 +21,20 @@ int main() {
     SetCurrentConsoleFontEx(GetStdHandle(STD_OUTPUT_HANDLE), FALSE, &cfi);
     
     try {
-        Game game;
+        UIManager ui;
+        MainMenu menu;
+        Player player("安特王子");
+        TaskSystem tasks(ui);
+        
+        MenuChoice choice = menu.run(player, tasks);
+        
+        if (choice == MenuChoice::EXIT_GAME) {
+            return 0;
+        }
+        
+        // 根据选择启动游戏
+        bool loadFromSave = (choice == MenuChoice::LOAD_GAME);
+        Game game(loadFromSave, loadFromSave ? &player : nullptr);
         game.run();
     }
     catch (const std::exception& e) {

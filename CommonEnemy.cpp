@@ -71,6 +71,17 @@ CommonEnemy::CommonEnemy(EnemyType type, int level)
         expReward = 140 * level;
         goldReward = 120 * level;
         break;
+    
+    case EnemyType::BOSS:// boss & 恶念将军
+        setMaxHP(50 * level);
+        setHP(getMaxHP());
+        setATK(12 * level);
+        setDEF(12 * level);
+        setSpeed(10 * level);
+        setCritRate(0.15f);
+        expReward = 200 * level;
+        goldReward = 200 * level;
+        break;
 
     default:  // 神秘敌人
         setMaxHP(10 * level);
@@ -99,6 +110,7 @@ std::string CommonEnemy::getEnemyName(EnemyType type) {
     case EnemyType::MINOTAUR: return "牛头人";
     case EnemyType::ZOMBIE: return "僵尸";
     case EnemyType::SKELETON: return "骷髅";
+    case EnemyType::BOSS: return "恶念将军";
     default: return "神秘敌人";
     }
 }
@@ -106,3 +118,4 @@ std::string CommonEnemy::getEnemyName(EnemyType type) {
 EnemyType CommonEnemy::getType() const { return type; }
 int CommonEnemy::getExpReward() const { return expReward; }
 int CommonEnemy::getGoldReward() const { return goldReward; }
+

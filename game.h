@@ -30,8 +30,8 @@ enum class GameState {
 // Game类声明
 class Game {
 public:
-    // 构造函数
-    Game();
+    // 构造函数 - 支持读档启动
+    Game(bool loadFromSave = false, Player* loadedPlayer = nullptr);
     // 运行游戏的主循环
     void run();
 
@@ -47,6 +47,7 @@ private:
     SaveLoadSystem saveLoad;
     bool isRunning;
     GameState currentState;
+    bool startedFromSave; // 是否从存档启动
     
     // 游戏内所有物品的数据库
     std::map<int, std::unique_ptr<Item>> itemDb;

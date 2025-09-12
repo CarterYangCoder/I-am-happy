@@ -3,6 +3,7 @@
 #define ITEM_H
 #include <string>
 #include <vector>
+#include <iostream>
 
 // 物品类型
 enum class ItemType {
@@ -52,6 +53,13 @@ public:
     std::string use() override;
     bool grantsExtraAction() const override;
     EnergyPotion* clone() const override;
+};
+
+class MysteriousItem : public Item {
+public:
+    MysteriousItem();
+    std::string use() override;
+    MysteriousItem* clone() const override;
 };
 
 #endif // ITEM_H

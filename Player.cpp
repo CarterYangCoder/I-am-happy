@@ -7,6 +7,13 @@ Player::Player(std::string name) : Attribute(name) {
     divineSword = new DivineWeapon();
     this->extraActionTurns = 0;
     this->currentRoomId = 1; // 初始位置：迷雾森林 
+    this->physicalShieldTurns = 0; // 新增：初始化物理护盾状态
+    
+    // 新增：初始化临时增益状态
+    this->speedBoostTurns = 0;
+    this->speedBoostAmount = 0;
+    this->defenseBoostTurns = 0;
+    this->defenseBoostAmount = 0;
     
     // 检查并解锁符合初始等级的技能
     checkAndUnlockSkills();
@@ -32,6 +39,28 @@ void Player::equipSetPart(Equipment* part) {
     setDEF(getDEF() + part->getDefBonus());
     // 检查是否集齐套装，如果是则尝试解锁终极技能
     if (hasAllSetParts()) {
+        // 神明对话（分段显示）
+        std::cout << "神明之声在你心中回响..." << std::endl;
+        std::cout << "按 Enter 键继续..." << std::endl;
+        std::string dummy;
+        std::getline(std::cin, dummy);
+        
+        std::cout << "神明：\"恭喜你，安特国的王子。六誓圣辉套装终于重聚。\"" << std::endl;
+        std::cout << "按 Enter 键继续..." << std::endl;
+        std::getline(std::cin, dummy);
+        
+        std::cout << "神明：\"皇室血脉正在觉醒，神圣力量流淌在你的血管中。\"" << std::endl;
+        std::cout << "按 Enter 键继续..." << std::endl;
+        std::getline(std::cin, dummy);
+        
+        std::cout << "神明：\"现在，去吧！用这份力量击败强敌，拯救你的王国。\"" << std::endl;
+        std::cout << "按 Enter 键继续..." << std::endl;
+        std::getline(std::cin, dummy);
+        
+        std::cout << "神明：\"愿光明指引你的道路，愿正义伴随你的剑刃。\"" << std::endl;
+        std::cout << "按 Enter 键继续..." << std::endl;
+        std::getline(std::cin, dummy);
+        
         // 套装共鸣效果：回满状态并提升属性
         setHP(getMaxHP());
         setMP(getMaxMP());
@@ -74,24 +103,6 @@ std::map<EquipmentPart, Equipment*> Player::getAllEquippedItems() const {
     return allItems;
 }
 
-// 重写升级方法，包含技能解锁逻辑
-bool Player::levelUp() {
-    // 只处理属性和技能，不再递归addExp
-    bool leveledUp = Attribute::levelUp();
-    if (leveledUp) {
-        checkAndUnlockSkills();
-        if (divineSword) divineSword->grow(getLevel());
-        std::cout << "恭喜！等级提升到 " << getLevel() << " 级！" << std::endl;
-        std::cout << "属性得到了提升，生命值已回复到满值。" << std::endl;
-        std::cout << "已解锁技能：";
-        for (auto skill : skills) {
-            std::cout << "[" << skill->getName() << "] ";
-        }
-        std::cout << std::endl;
-    }
-    return leveledUp;
-}
-
 // 解锁技能
 void Player::unlockSkill(SkillType type) {
     // 检查是否已经拥有该技能
@@ -107,28 +118,28 @@ void Player::unlockSkill(SkillType type) {
     switch (type) {
     case SkillType::HOLY_RIFT_SLASH:
         newSkill = new Skill(type, "圣界裂隙斩", "物理伤害技能", 1, SkillTarget::ENEMY, DamageType::PHYSICAL, 20);
-        std::cout << "解锁了新技能: " << newSkill->getName() << std::endl;
+        std::cout << "\033[35m✨ 解锁了新技能: \033[33m" << newSkill->getName() << "\033[35m ✨\033[0m" << std::endl;
         break;
     case SkillType::GOLDEN_TREE_VOW:
         newSkill = new Skill(type, "黄金树之誓", "加血增益", 5, SkillTarget::SELF, DamageType::BUFF, 10);
-        std::cout << "解锁了新技能: " << newSkill->getName() << std::endl;
+        std::cout << "\033[35m✨ 解锁了新技能: \033[33m" << newSkill->getName() << "\033[35m ✨\033[0m" << std::endl;
         break;
     case SkillType::HOLY_PRISON_JUDGMENT:
         newSkill = new Skill(type, "圣狱裁决", "魔法伤害技能", 10, SkillTarget::ENEMY, DamageType::MAGICAL, 30);
-        std::cout << "解锁了新技能: " << newSkill->getName() << std::endl;
+        std::cout << "\033[35m✨ 解锁了新技能: \033[33m" << newSkill->getName() << "\033[35m ✨\033[0m" << std::endl;
         break;
     case SkillType::STAR_ARMOR:
         newSkill = new Skill(type, "星辰圣铠", "提升防御", 15, SkillTarget::SELF, DamageType::STAR_ARMOR, 15);
-        std::cout << "解锁了新技能: " << newSkill->getName() << std::endl;
+        std::cout << "\033[35m✨ 解锁了新技能: \033[33m" << newSkill->getName() << "\033[35m ✨\033[0m" << std::endl;
         break;
     case SkillType::HOLY_MARK_SPEED:
         newSkill = new Skill(type, "圣痕疾影步", "提升速度", 20, SkillTarget::SELF, DamageType::HOLY_MARK_SPEED, 20);
-        std::cout << "解锁了新技能: " << newSkill->getName() << std::endl;
+        std::cout << "\033[35m✨ 解锁了新技能: \033[33m" << newSkill->getName() << "\033[35m ✨\033[0m" << std::endl;
         break;
     case SkillType::ULTIMATE_SLAY:
         if (hasAllSetParts()) { // 仅在集齐神器时解锁
             newSkill = new Skill(type, "星闪流河圣龙飞升·神界湮灭斩·最终式", "终极技能，毁灭一切", 50, SkillTarget::ENEMY, DamageType::MAGICAL, 100);
-            std::cout << "集齐六誓圣辉套装！解锁了终极技能: " << newSkill->getName() << std::endl;
+            std::cout << "\033[35m🌟 集齐六誓圣辉套装！解锁了终极技能: \033[33m" << newSkill->getName() << "\033[35m 🌟\033[0m" << std::endl;
         }
         break;
     default: 
@@ -138,6 +149,25 @@ void Player::unlockSkill(SkillType type) {
     if (newSkill) {
         skills.push_back(newSkill);
     }
+}
+
+// 重写升级方法，包含技能解锁逻辑
+bool Player::levelUp() {
+    // 只处理属性和技能，不再递归addExp
+    bool leveledUp = Attribute::levelUp();
+    if (leveledUp) {
+        checkAndUnlockSkills();
+        if (divineSword) divineSword->grow(getLevel());
+        
+        // 优化技能列表显示
+        std::cout << "\033[34m📜 当前已解锁技能：\033[0m";
+        for (auto skill : skills) {
+            std::cout << "\033[33m[" << skill->getName() << "]\033[0m ";
+        }
+        std::cout << std::endl;
+        std::cout << std::endl; // 添加空行分隔
+    }
+    return leveledUp;
 }
 
 // 检查并解锁符合等级要求的技能
@@ -224,27 +254,67 @@ void Player::clearInventory() {
 bool Player::equipFromInventory(const std::string& equipmentName) {
     // 检查背包是否有该装备
     if (inventory.count(equipmentName) && inventory[equipmentName] > 0) {
-        // 判断是否为装备类型
-        Equipment* equip = nullptr;
-        // 这里只能通过装备名查找，实际项目可用装备数据库
-        if (equipmentName == "自由誓约・破枷之冠")
-            equip = new Equipment("自由誓约・破枷之冠", EquipmentPart::HELMET, "破除精神枷锁", 10, 5, "抵抗精神控制");
-        else if (equipmentName == "忠诚誓约・铁誓胸甲" || equipmentName == "铁誓胸甲")
-            equip = new Equipment("忠诚誓约・铁誓胸甲", EquipmentPart::CHESTPLATE, "忠诚加护", 15, 10, "提升防御");
-        else if (equipmentName == "希望誓约・晨曦披风" || equipmentName == "晨曦披风")
-            equip = new Equipment("希望誓约・晨曦披风", EquipmentPart::CAPE, "希望加持", 8, 8, "提升速度");
-        else if (equipmentName == "怜悯誓约・抚伤之链")
-            equip = new Equipment("怜悯誓约・抚伤之链", EquipmentPart::NECKLACE, "怜悯治愈", 5, 5, "提升回血");
-        else if (equipmentName == "真理誓约・明识之戒")
-            equip = new Equipment("真理誓约・明识之戒", EquipmentPart::RING, "明识真理", 5, 5, "提升暴击");
-        else if (equipmentName == "秩序誓约・创世战靴")
-            equip = new Equipment("秩序誓约・创世战靴", EquipmentPart::BOOTS, "秩序加速", 8, 8, "提升速度");
-        if (equip) {
-            equipSetPart(equip);
-            inventory[equipmentName]--;
-            if (inventory[equipmentName] == 0) inventory.erase(equipmentName);
-            std::cout << "成功穿戴装备：" << equipmentName << std::endl;
-            return true;
+        // 新增：检查任务完成状态，只有任务已提交完成才能穿戴
+        bool canEquip = false;
+        std::string taskRequirement = "";
+        
+        if (equipmentName == "自由誓约・破枷之冠") {
+            taskRequirement = "1";
+        } else if (equipmentName == "忠诚誓约・铁誓胸甲" || equipmentName == "铁誓胸甲") {
+            taskRequirement = "2";
+        } else if (equipmentName == "真理誓约・明识之戒" || equipmentName == "明识之戒") {
+            taskRequirement = "3";
+        } else if (equipmentName == "怜悯誓约・抚伤之链" || equipmentName == "怜悯之链") {
+            taskRequirement = "4";
+        } else if (equipmentName == "希望誓约・晨曦披风" || equipmentName == "晨曦披风") {
+            taskRequirement = "5";
+        } else if (equipmentName == "秩序誓约・创世战靴" || equipmentName == "创世战靴") {
+            taskRequirement = "6";
+        }
+        
+        // 检查任务状态
+        if (!taskRequirement.empty()) {
+            if (taskProgress.count(taskRequirement) && 
+                taskProgress[taskRequirement].getStatus() == TaskStatus::REWARDED) {
+                canEquip = true;
+            } else {
+                std::cout << "你还不可以穿戴这件装备！ (｡•́︿•̀｡)" << std::endl;
+                std::cout << "需要先完成并提交任务" << taskRequirement << "才能获得穿戴权限。" << std::endl;
+                std::cout << "神明：\"耐心点，年轻人，力量需要通过试炼才能获得！ (￣▽￣)ノ\"" << std::endl;
+                return false;
+            }
+        } else {
+            canEquip = true; // 非任务装备可以直接穿戴
+        }
+        
+        if (canEquip) {
+            // 判断是否为装备类型
+            Equipment* equip = nullptr;
+            // 这里只能通过装备名查找，实际项目可用装备数据库
+            if (equipmentName == "自由誓约・破枷之冠")
+                equip = new Equipment("自由誓约・破枷之冠", EquipmentPart::HELMET, "破除精神枷锁", 10, 5, "抵抗精神控制");
+            else if (equipmentName == "忠诚誓约・铁誓胸甲" || equipmentName == "铁誓胸甲")
+                equip = new Equipment("忠诚誓约・铁誓胸甲", EquipmentPart::CHESTPLATE, "忠诚加护", 15, 10, "提升防御");
+            else if (equipmentName == "希望誓约・晨曦披风" || equipmentName == "晨曦披风")
+                equip = new Equipment("希望誓约・晨曦披风", EquipmentPart::CAPE, "希望加持", 8, 8, "提升速度");
+            else if (equipmentName == "怜悯誓约・抚伤之链")
+                equip = new Equipment("怜悯誓约・抚伤之链", EquipmentPart::NECKLACE, "怜悯治愈", 5, 5, "提升回血");
+            else if (equipmentName == "真理誓约・明识之戒")
+                equip = new Equipment("真理誓约・明识之戒", EquipmentPart::RING, "明识真理", 5, 5, "提升暴击");
+            else if (equipmentName == "秩序誓约・创世战靴")
+                equip = new Equipment("秩序誓约・创世战靴", EquipmentPart::BOOTS, "秩序加速", 8, 8, "提升速度");
+            
+            if (equip) {
+                equipSetPart(equip);
+                // 重要：从背包中完全移除装备（作为消耗品）
+                inventory[equipmentName]--;
+                if (inventory[equipmentName] == 0) {
+                    inventory.erase(equipmentName);
+                }
+                std::cout << "成功穿戴装备：" << equipmentName << std::endl;
+                std::cout << "神明：\"装备已与你融为一体，无法取下，也无法重复获得。\"" << std::endl;
+                return true;
+            }
         }
     }
     std::cout << "背包中没有该装备或不是装备类型。" << std::endl;
@@ -252,9 +322,122 @@ bool Player::equipFromInventory(const std::string& equipmentName) {
 }
 
 void Player::addExp(int value) {
+    if (isMaxLevel()) {
+        // 满级后不再获得经验，友好提示
+        std::cout << "\033[36m你已达到最高等级，无需再获得经验。\033[0m" << std::endl;
+        std::cout << "\033[37m神明：\"你的力量已经完美无缺了！\"\033[0m" << std::endl;
+        return;
+    }
+    
     exp += value;
-    // 升级循环，直到经验不足
-    while (exp >= expToNextLevel) {
+    // 升级循环，直到经验不足或达到满级
+    while (exp >= expToNextLevel && !isMaxLevel()) {
         levelUp(); // 调用自身的升级方法，保证属性和技能同步
     }
+}
+
+bool Player::sellItem(const std::string& itemName, int quantity) {
+    if (!inventory.count(itemName) || inventory[itemName] < quantity) {
+        return false; // 物品不足
+    }
+    
+    if (!canSellItem(itemName)) {
+        return false; // 不可售卖
+    }
+    
+    int sellPrice = getItemSellPrice(itemName) * quantity;
+    inventory[itemName] -= quantity;
+    if (inventory[itemName] == 0) {
+        inventory.erase(itemName);
+    }
+    addGold(sellPrice);
+    return true;
+}
+
+bool Player::dropItem(const std::string& itemName, int quantity) {
+    if (!inventory.count(itemName) || inventory[itemName] < quantity) {
+        return false; // 物品不足
+    }
+    
+    inventory[itemName] -= quantity;
+    if (inventory[itemName] == 0) {
+        inventory.erase(itemName);
+    }
+    return true;
+}
+
+bool Player::canSellItem(const std::string& itemName) const {
+    // 商店购买的物品可以售卖
+    if (itemName == "生命药水" || itemName == "能量药水" || itemName == "神秘商品") {
+        return true;
+    }
+    
+    // 任务物品和装备不可售卖
+    return false;
+}
+
+int Player::getItemSellPrice(const std::string& itemName) const {
+    // 商店物品按原价50%出售
+    if (itemName == "生命药水") return 25;  // 原价50的50%
+    if (itemName == "能量药水") return 50;  // 原价100的50%
+    if (itemName == "神秘商品") return 5;   // 原价10的50%
+    
+    return 0; // 不可售卖物品
+}
+
+// 新增：临时增益状态管理
+void Player::addSpeedBoost(int amount, int turns) {
+    if (speedBoostTurns > 0) {
+        // 如果已有速度增益，先移除旧的效果
+        setSpeed(getSpeed() - speedBoostAmount);
+    }
+    speedBoostAmount = amount;
+    speedBoostTurns = turns;
+    setSpeed(getSpeed() + amount);
+}
+
+void Player::addDefenseBoost(int amount, int turns) {
+    if (defenseBoostTurns > 0) {
+        // 如果已有防御增益，先移除旧的效果
+        setDEF(getDEF() - defenseBoostAmount);
+    }
+    defenseBoostAmount = amount;
+    defenseBoostTurns = turns;
+    setDEF(getDEF() + amount);
+}
+
+void Player::updateBuffTurns() {
+    // 更新速度增益
+    if (speedBoostTurns > 0) {
+        speedBoostTurns--;
+        if (speedBoostTurns == 0) {
+            setSpeed(getSpeed() - speedBoostAmount);
+            speedBoostAmount = 0;
+            std::cout << "\033[33m圣痕疾影步效果消失，速度恢复正常。\033[0m" << std::endl;
+        }
+    }
+    
+    // 更新防御增益
+    if (defenseBoostTurns > 0) {
+        defenseBoostTurns--;
+        if (defenseBoostTurns == 0) {
+            setDEF(getDEF() - defenseBoostAmount);
+            defenseBoostAmount = 0;
+            std::cout << "\033[33m星辰圣铠效果消失，防御恢复正常。\033[0m" << std::endl;
+        }
+    }
+}
+
+std::string Player::getBuffStatus() const {
+    std::string status = "";
+    if (physicalShieldTurns > 0) {
+        status += "【圣光庇护:" + std::to_string(physicalShieldTurns) + "回合】 ";
+    }
+    if (speedBoostTurns > 0) {
+        status += "【疾影步:+" + std::to_string(speedBoostAmount) + "速度," + std::to_string(speedBoostTurns) + "回合】 ";
+    }
+    if (defenseBoostTurns > 0) {
+        status += "【圣铠:+" + std::to_string(defenseBoostAmount) + "防御," + std::to_string(defenseBoostTurns) + "回合】 ";
+    }
+    return status.empty() ? "无" : status;
 }

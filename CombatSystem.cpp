@@ -54,309 +54,53 @@ CombatResult CombatSystem::playerTurn(Player &player, EvilGeneral &boss, const s
 void CombatSystem::enemyTurn(CommonEnemy &enemy, Player &player)
 {
     ui.displayMessage("--- " + enemy.getName() + " 的回合 ---", UIManager::Color::MAGENTA);
-    int damage = calculateDamage(enemy, player);
-    player.takeDamage(damage);
-    ui.displayMessage(enemy.getName() + " 对你造成了 " + std::to_string(damage) + " 点伤害!", UIManager::Color::RED);
+    // 新增：黄金树之誓护盾判定（免疫物理伤害）
+    if (player.getPhysicalShieldTurns() > 0) {
+        player.consumePhysicalShieldTurn();
+        ui.displayMessage("黄金树之誓庇护生效，本回合免疫物理伤害！(剩余 " + std::to_string(player.getPhysicalShieldTurns()) + " 回合)", UIManager::Color::CYAN);
+        ui.displayMessage(enemy.getName() + " 的攻击被完全吸收！", UIManager::Color::YELLOW);
+    } else {
+        int damage = calculateDamage(enemy, player);
+        player.takeDamage(damage);
+        ui.displayMessage(enemy.getName() + " 对你造成了 " + std::to_string(damage) + " 点伤害!", UIManager::Color::RED);
+    }
+    
+    // 新增：回合结束时更新增益状态
+    player.updateBuffTurns();
 }
 
 void CombatSystem::enemyTurn(EvilGeneral &boss, Player &player)
 {
     ui.displayMessage("--- " + boss.getName() + " 的回合 ---", UIManager::Color::MAGENTA);
-    int damage = calculateDamage(boss, player);
-    player.takeDamage(damage);
-    ui.displayMessage(boss.getName() + " 对你造成了 " + std::to_string(damage) + " 点伤害!", UIManager::Color::RED);
-}
-
-CombatResult CombatSystem::startCombat(Player &player, CommonEnemy &enemy, const std::map<int, std::unique_ptr<Item>> &itemDb)
-{
-    ui.displayMessage("战斗开始! " + player.getName() + " vs " + enemy.getName(), UIManager::Color::MAGENTA);
-    player.extraActionTurns = 0;
-
-    Attribute *first = &player;
-
-    if (enemy.getSpeed() > player.getSpeed())
-    {
-        first = &enemy;
-        ui.displayMessage(enemy.getName() + " 速度更快，获得先手!", UIManager::Color::YELLOW);
+    // 新增：黄金树之誓护盾判定（免疫物理伤害）
+    if (player.getPhysicalShieldTurns() > 0) {
+        player.consumePhysicalShieldTurn();
+        ui.displayMessage("黄金树之誓庇护生效，本回合免疫物理伤害！(剩余 " + std::to_string(player.getPhysicalShieldTurns()) + " 回合)", UIManager::Color::CYAN);
+        ui.displayMessage(boss.getName() + " 的攻击被完全吸收！", UIManager::Color::YELLOW);
+    } else {
+        int damage = calculateDamage(boss, player);
+        player.takeDamage(damage);
+        ui.displayMessage(boss.getName() + " 对你造成了 " + std::to_string(damage) + " 点伤害!", UIManager::Color::RED);
     }
-    else
-    {
-        ui.displayMessage(player.getName() + " 速度更快，获得先手!", UIManager::Color::GREEN);
-    }
-
-    while (player.isAlive() && enemy.isAlive())
-    {
-        // 定义一个lambda函数来处理玩家的完整回合，包括额外行动
-        auto execute_player_turn_phase = [&]() -> CombatResult
-        {
-            // 在回合开始时应用能量药水的效果
-            int totalActions = 1 + player.extraActionTurns;
-            player.extraActionTurns = 0; // 重置额外行动次数
-            
-            for (int actionCount = 0; actionCount < totalActions && player.isAlive() && enemy.isAlive(); actionCount++)
-            {
-                if (actionCount > 0)
-                {
-                    ui.displayMessage("额外行动回合！", UIManager::Color::CYAN);
-                }
-                
-                CombatResult result = playerTurn(player, enemy, itemDb);
-                if (result != CombatResult::Continue) return result;
-            }
-            
-            return CombatResult::Continue;
-        };
-
-        // 根据先手顺序执行回合
-        if (first == &player)
-        {
-            CombatResult result = execute_player_turn_phase();
-            if (result != CombatResult::Continue) return result;
-            if (enemy.isAlive()) enemyTurn(enemy, player);
-        }
-        else
-        {
-            enemyTurn(enemy, player);
-            if (player.isAlive())
-            {
-                CombatResult result = execute_player_turn_phase();
-                if (result != CombatResult::Continue) return result;
-            }
-        }
-    }
-
-    if (player.isAlive())
-    {
-        ui.displayMessage("你赢得了战斗!", UIManager::Color::GREEN);
-        player.addExp(enemy.getExpReward());
-        player.addGold(enemy.getGoldReward());
-        ui.displayMessage("获得经验: " + std::to_string(enemy.getExpReward()), UIManager::Color::YELLOW);
-        ui.displayMessage("获得金币: " + std::to_string(enemy.getGoldReward()), UIManager::Color::YELLOW);
-        return CombatResult::Victory;
-    }
-    else
-    {
-        ui.displayMessage("你被击败了...", UIManager::Color::RED);
-        ui.displayMessage("选择: [1]重新挑战 [2]读取存档 [3]退出游戏", UIManager::Color::WHITE);
-        int choice = 1;
-        std::cin >> choice;
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-
-        switch (choice)
-        {
-        case 1: return CombatResult::Defeat_Restart;
-        case 2: return CombatResult::Defeat_Load;
-        case 3: return CombatResult::Defeat_Exit;
-        default: return CombatResult::Defeat_Restart;
-        }
-    }
-}
-
-CombatResult CombatSystem::startCombat(Player &player, EvilGeneral &boss, const std::map<int, std::unique_ptr<Item>> &itemDb)
-{
-    ui.displayMessage("BOSS战斗开始! " + player.getName() + " vs " + boss.getName(), UIManager::Color::MAGENTA);
     
-    // 显示战前对话
-    ui.displayMessage("=== 战前对话 ===", UIManager::Color::YELLOW);
-    ui.displayMessage(boss.getPreBattleDialogue(), UIManager::Color::WHITE);
-    ui.displayMessage("==================", UIManager::Color::YELLOW);
-    
-    player.extraActionTurns = 0;
-
-    Attribute *first = &player;
-
-    if (boss.getSpeed() > player.getSpeed())
-    {
-        first = &boss;
-        ui.displayMessage(boss.getName() + " 速度更快，获得先手!", UIManager::Color::YELLOW);
-    }
-    else
-    {
-        ui.displayMessage(player.getName() + " 速度更快，获得先手!", UIManager::Color::GREEN);
-    }
-
-    while (player.isAlive() && boss.isAlive())
-    {
-        auto execute_player_turn_phase = [&]() -> CombatResult
-        {
-            // 在回合开始时应用能量药水的效果
-            int totalActions = 1 + player.extraActionTurns;
-            player.extraActionTurns = 0; // 重置额外行动次数
-            
-            for (int actionCount = 0; actionCount < totalActions && player.isAlive() && boss.isAlive(); actionCount++)
-            {
-                if (actionCount > 0)
-                {
-                    ui.displayMessage("额外行动回合！", UIManager::Color::CYAN);
-                }
-                
-                CombatResult result = playerTurn(player, boss, itemDb);
-                if (result != CombatResult::Continue) return result;
-            }
-            
-            return CombatResult::Continue;
-        };
-
-        if (first == &player)
-        {
-            CombatResult result = execute_player_turn_phase();
-            if (result != CombatResult::Continue) return result;
-            if (boss.isAlive()) enemyTurn(boss, player);
-        }
-        else
-        {
-            enemyTurn(boss, player);
-            if (player.isAlive())
-            {
-                CombatResult result = execute_player_turn_phase();
-                if (result != CombatResult::Continue) return result;
-            }
-        }
-    }
-
-    if (player.isAlive())
-    {
-        ui.displayMessage("=== 胜利对话 ===", UIManager::Color::YELLOW);
-        ui.displayMessage(boss.getDefeatDialogue(), UIManager::Color::WHITE);
-        ui.displayMessage("==================", UIManager::Color::YELLOW);
-        
-        ui.displayMessage("你击败了BOSS " + boss.getName() + "!", UIManager::Color::GREEN);
-        player.addExp(boss.getExpReward());
-        player.addGold(boss.getGoldReward());
-        ui.displayMessage("获得经验: " + std::to_string(boss.getExpReward()), UIManager::Color::YELLOW);
-        ui.displayMessage("获得金币: " + std::to_string(boss.getGoldReward()), UIManager::Color::YELLOW);
-        return CombatResult::Victory;
-    }
-    else
-    {
-        ui.displayMessage("=== 失败对话 ===", UIManager::Color::YELLOW);
-        ui.displayMessage(boss.getVictoryDialogue(), UIManager::Color::WHITE);
-        ui.displayMessage("==================", UIManager::Color::YELLOW);
-        
-        ui.displayMessage("你被BOSS击败了...", UIManager::Color::RED);
-        ui.displayMessage("选择: [1]重新挑战 [2]读取存档 [3]退出游戏", UIManager::Color::WHITE);
-        int choice = 1;
-        std::cin >> choice;
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-
-        switch (choice)
-        {
-        case 1: return CombatResult::Defeat_Restart;
-        case 2: return CombatResult::Defeat_Load;
-        case 3: return CombatResult::Defeat_Exit;
-        default: return CombatResult::Defeat_Restart;
-        }
-    }
-}
-
-CombatResult CombatSystem::startCombat(Player &player, BossWanEshuji &boss, const std::map<int, std::unique_ptr<Item>> &itemDb)
-{
-    ui.displayMessage("终极BOSS战斗开始! " + player.getName() + " vs " + boss.getName(), UIManager::Color::MAGENTA);
-    ui.displayMessage("万恶枢机散发着恐怖的气息，这将是一场多阶段的艰难战斗！", UIManager::Color::RED);
-    
-    // 显示战前对话
-    ui.displayMessage("=== 战前对话 ===", UIManager::Color::YELLOW);
-    ui.displayMessage(boss.getPreBattleDialogue(), UIManager::Color::WHITE);
-    ui.displayMessage("==================", UIManager::Color::YELLOW);
-    
-    player.extraActionTurns = 0;
-
-    Attribute *first = &player;
-
-    if (boss.getSpeed() > player.getSpeed())
-    {
-        first = &boss;
-        ui.displayMessage(boss.getName() + " 速度更快，获得先手!", UIManager::Color::YELLOW);
-    }
-    else
-    {
-        ui.displayMessage(player.getName() + " 速度更快，获得先手!", UIManager::Color::GREEN);
-    }
-
-    while (player.isAlive() && boss.isAlive())
-    {
-        // 检查阶段转换
-        if (boss.shouldEnterNextPhase())
-        {
-            boss.enterNextPhase();
-        }
-
-        auto execute_player_turn_phase = [&]() -> CombatResult
-        {
-            CombatResult result = playerTurn(player, boss, itemDb);
-            if (result != CombatResult::Continue) return result;
-
-            while (player.extraActionTurns > 0 && player.isAlive() && boss.isAlive())
-            {
-                player.extraActionTurns--;
-                ui.displayMessage("额外行动回合！", UIManager::Color::CYAN);
-                result = playerTurn(player, boss, itemDb);
-                if (result != CombatResult::Continue) return result;
-            }
-            return CombatResult::Continue;
-        };
-
-        if (first == &player)
-        {
-            CombatResult result = execute_player_turn_phase();
-            if (result != CombatResult::Continue) return result;
-            if (boss.isAlive()) enemyTurn(boss, player);
-        }
-        else
-        {
-            enemyTurn(boss, player);
-            if (player.isAlive())
-            {
-                CombatResult result = execute_player_turn_phase();
-                if (result != CombatResult::Continue) return result;
-            }
-        }
-    }
-
-    if (player.isAlive())
-    {
-        ui.displayMessage("=== 胜利对话 ===", UIManager::Color::YELLOW);
-        ui.displayMessage(boss.getDefeatDialogue(), UIManager::Color::WHITE);
-        ui.displayMessage("==================", UIManager::Color::YELLOW);
-        
-        ui.displayMessage("你击败了万恶枢机，拯救了世界!", UIManager::Color::GREEN);
-        player.addExp(boss.getExpReward());
-        player.addGold(boss.getGoldReward());
-        ui.displayMessage("获得经验: " + std::to_string(boss.getExpReward()), UIManager::Color::YELLOW);
-        ui.displayMessage("获得金币: " + std::to_string(boss.getGoldReward()), UIManager::Color::YELLOW);
-        return CombatResult::Victory;
-    }
-    else
-    {
-        ui.displayMessage("=== 失败对话 ===", UIManager::Color::YELLOW);
-        ui.displayMessage(boss.getVictoryDialogue(), UIManager::Color::WHITE);
-        ui.displayMessage("==================", UIManager::Color::YELLOW);
-        
-        ui.displayMessage("你被万恶枢机击败了...", UIManager::Color::RED);
-        ui.displayMessage("选择: [1]重新挑战 [2]读取存档 [3]退出游戏", UIManager::Color::WHITE);
-        int choice = 1;
-        std::cin >> choice;
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-
-        switch (choice)
-        {
-        case 1: return CombatResult::Defeat_Restart;
-        case 2: return CombatResult::Defeat_Load;
-        case 3: return CombatResult::Defeat_Exit;
-        default: return CombatResult::Defeat_Restart;
-        }
-    }
-}
-
-CombatResult CombatSystem::playerTurn(Player &player, BossWanEshuji &boss, const std::map<int, std::unique_ptr<Item>> &itemDb)
-{
-    return handlePlayerAction(player, boss, itemDb);
+    // 新增：回合结束时更新增益状态
+    player.updateBuffTurns();
 }
 
 void CombatSystem::enemyTurn(BossWanEshuji &boss, Player &player)
 {
     ui.displayMessage("--- " + boss.getName() + " 的回合 ---", UIManager::Color::MAGENTA);
     ui.displayMessage(boss.getPhaseAttackDescription(), UIManager::Color::YELLOW);
+
+    // 新增：黄金树之誓护盾判定（免疫物理伤害）
+    if (player.getPhysicalShieldTurns() > 0) {
+        player.consumePhysicalShieldTurn();
+        ui.displayMessage("黄金树之誓庇护生效，本回合免疫物理伤害！(剩余 " + std::to_string(player.getPhysicalShieldTurns()) + " 回合)", UIManager::Color::CYAN);
+        ui.displayMessage(boss.getName() + " 的攻击被完全吸收！", UIManager::Color::YELLOW);
+        // 新增：回合结束时更新增益状态
+        player.updateBuffTurns();
+        return;
+    }
     
     // 根据当前阶段使用不同的攻击模式
     std::random_device rd;
@@ -366,7 +110,7 @@ void CombatSystem::enemyTurn(BossWanEshuji &boss, Player &player)
     
     switch (boss.getPhase())
     {
-    case 1: // 第一阶段：普通攻击为主
+    case 1:
         {
             int damage = calculateDamage(boss, player);
             player.takeDamage(damage);
@@ -410,6 +154,9 @@ void CombatSystem::enemyTurn(BossWanEshuji &boss, Player &player)
         }
         break;
     }
+    
+    // 新增：回合结束时更新增益状态
+    player.updateBuffTurns();
 }
 
 // 通用函数实现
@@ -418,13 +165,17 @@ CombatResult CombatSystem::handleSkillSelection(Player& player, Attribute& targe
     if (player.getSkills().empty())
     {
         ui.displayMessage("你还没有学会任何技能！", UIManager::Color::YELLOW);
-        return CombatResult::Continue; // 返回Continue表示需要重新选择
+        return CombatResult::Continue;
     }
     
     ui.displayMessage("选择技能:", UIManager::Color::CYAN);
     for (size_t i = 0; i < player.getSkills().size(); ++i)
     {
-        ui.displayMessage("[" + std::to_string(i + 1) + "] " + player.getSkills()[i]->getName() + " (威力: " + std::to_string(player.getSkills()[i]->getPower()) + ")", UIManager::Color::WHITE);
+        int scaled = player.getSkills()[i]->getScaledPower(player.getLevel());
+        int mpCost = player.getSkills()[i]->getMpCost(player.getLevel());
+        ui.displayMessage("[" + std::to_string(i + 1) + "] " + player.getSkills()[i]->getName() +
+                          " (威力: " + std::to_string(scaled) + " | MP: " + std::to_string(mpCost) + ")",
+                          UIManager::Color::WHITE);
     }
     ui.displayMessage("[0] 取消", UIManager::Color::GRAY);
     
@@ -434,56 +185,77 @@ CombatResult CombatSystem::handleSkillSelection(Player& player, Attribute& targe
     
     if (skillChoice == 0)
     {
-        return CombatResult::Continue; // 取消，重新选择行动
+        return CombatResult::Continue;
     }
     else if (skillChoice > 0 && skillChoice <= player.getSkills().size())
     {
         Skill* skill = player.getSkills()[skillChoice - 1];
+        int scaledPower = skill->getScaledPower(player.getLevel());
+        int mpCost = skill->getMpCost(player.getLevel());
+
+        if (player.getMP() < mpCost) {
+            ui.displayMessage("蓝量不足，无法释放技能。", UIManager::Color::RED);
+            return CombatResult::Continue;
+        }
+        player.setMP(player.getMP() - mpCost);
+
         switch (skill->getDamageType())
         {
         case DamageType::PHYSICAL:
         {
-            int damage = calculateDamage(player, target, skill->getPower());
+            int damage = calculateDamage(player, target, scaledPower);
             target.takeDamage(damage);
             ui.displayMessage("你使用 " + skill->getName() + " 对 " + target.getName() + " 造成了 " + std::to_string(damage) + " 点物理伤害!", UIManager::Color::RED);
             break;
         }
         case DamageType::MAGICAL:
         {
-            int damage = calculateDamage(player, target, skill->getPower());
+            int damage = calculateDamage(player, target, scaledPower);
             target.takeDamage(damage);
             ui.displayMessage("你使用 " + skill->getName() + " 对 " + target.getName() + " 造成了 " + std::to_string(damage) + " 点魔法伤害!", UIManager::Color::BLUE);
             break;
         }
         case DamageType::BUFF:
         {
-            player.heal(skill->getPower());
-            ui.displayMessage("你使用 " + skill->getName() + " 恢复了 " + std::to_string(skill->getPower()) + " 点生命值!", UIManager::Color::GREEN);
+            // 新增：黄金树之誓特殊处理（回血、回蓝、两回合物理免疫）
+            if (skill->getType() == SkillType::GOLDEN_TREE_VOW) {
+                int healHp = std::max(scaledPower, static_cast<int>(player.getMaxHP() * 0.12f));
+                int healMp = std::max(static_cast<int>(scaledPower * 0.5f), static_cast<int>(player.getMaxMP() * 0.08f));
+                player.heal(healHp);
+                player.setMP(player.getMP() + healMp); // setMP内部已做上限裁剪
+                player.addPhysicalShieldTurns(2);
+                ui.displayMessage("黄金树之誓发动！恢复生命 " + std::to_string(healHp) + "，恢复蓝量 " + std::to_string(healMp) + "。", UIManager::Color::GREEN);
+                ui.displayMessage("获得圣光庇护：接下来的2个敌方回合免疫物理伤害！", UIManager::Color::CYAN);
+            } else {
+                // 其他一般增益：按原逻辑回血
+                player.heal(scaledPower);
+                ui.displayMessage("你使用 " + skill->getName() + " 恢复了 " + std::to_string(scaledPower) + " 点生命值!", UIManager::Color::GREEN);
+            }
             break;
         }
         case DamageType::HOLY_MARK_SPEED: 
         {
-            int speedBoost = skill->getPower();
-            player.setSpeed(player.getSpeed() + speedBoost);
+            int speedBoost = scaledPower;
+            player.addSpeedBoost(speedBoost, 2); // 修改：使用新的增益系统，持续2回合
             ui.displayMessage(player.getName() + " 使用了【" + skill->getName() + "】！", UIManager::Color::CYAN);
-            ui.displayMessage("圣痕疾影步发动！速度提升了 " + std::to_string(speedBoost) + " 点！", UIManager::Color::YELLOW);
+            ui.displayMessage("圣痕疾影步发动！速度提升了 " + std::to_string(speedBoost) + " 点，持续2回合！", UIManager::Color::YELLOW);
             break;
         }
         case DamageType::STAR_ARMOR: 
         {
-            int defenseBoost = skill->getPower();
-            player.setDEF(player.getDEF() + defenseBoost);
+            int defenseBoost = scaledPower;
+            player.addDefenseBoost(defenseBoost, 2); // 修改：使用新的增益系统，持续2回合
             ui.displayMessage(player.getName() + " 使用了【" + skill->getName() + "】！", UIManager::Color::CYAN);
-            ui.displayMessage("星辰圣铠发动！防御提升了 " + std::to_string(defenseBoost) + " 点！", UIManager::Color::YELLOW);
+            ui.displayMessage("星辰圣铠发动！防御提升了 " + std::to_string(defenseBoost) + " 点，持续2回合！", UIManager::Color::YELLOW);
             break;
         }
         }
-        return CombatResult::Escaped; // 使用Escaped表示行动完成（临时解决方案）
+        return CombatResult::Escaped; // 行动完成
     }
     else
     {
         ui.displayMessage("无效选择。", UIManager::Color::RED);
-        return CombatResult::Continue; // 重新选择
+        return CombatResult::Continue;
     }
 }
 
@@ -524,19 +296,28 @@ CombatResult CombatSystem::handleItemUsage(Player& player, const std::map<int, s
             player.heal(healAmount);
             player.useItem(chosenItemName);
             ui.displayMessage("你使用了生命药水，恢复了" + std::to_string(healAmount) + "点生命值（50%最大生命值）！", UIManager::Color::GREEN);
+            ui.displayMessage("药水效果瞬间生效，你可以继续行动！", UIManager::Color::CYAN);
+            return CombatResult::Continue; // 不消耗回合，可以继续行动
         }
         else if (chosenItemName == "能量药水")
         {
-            player.extraActionTurns += 1; // 在下一回合开始时生效
+            int mpRecoverAmount = (player.getMP() * 50) / 100; // 回复50%当前蓝量
+            player.setMP(player.getMP() + mpRecoverAmount);
             player.useItem(chosenItemName);
-            ui.displayMessage("你使用了能量药水，下一回合开始时获得额外行动机会！", UIManager::Color::CYAN);
+            ui.displayMessage("你使用了能量药水，恢复了" + std::to_string(mpRecoverAmount) + "点蓝量（50%当前蓝量）！", UIManager::Color::CYAN);
+            ui.displayMessage("药水效果瞬间生效，你可以继续行动！", UIManager::Color::CYAN);
+            return CombatResult::Continue; // 不消耗回合，可以继续行动
+        }
+        else if (chosenItemName == "神秘商品")
+        {
+            ui.displayMessage("战斗中不能使用这个物品。", UIManager::Color::YELLOW);
+            return CombatResult::Continue; // 重新选择
         }
         else
         {
             ui.displayMessage("这个道具暂时无法使用。", UIManager::Color::YELLOW);
             return CombatResult::Continue; // 重新选择
         }
-        return CombatResult::Escaped; // 使用Escaped表示行动完成（临时解决方案）
     }
     else
     {
@@ -577,9 +358,9 @@ CombatResult CombatSystem::handleEscapeAttempt(Player& player, Enemy& enemy)
 template<typename Enemy>
 CombatResult CombatSystem::handlePlayerAction(Player& player, Enemy& enemy, const std::map<int, std::unique_ptr<Item>>& itemDb)
 {
-    ui.displaySimpleCombatStatus(player, enemy);
-    
+    // 移除这里的状态显示，因为已经在上层处理了
     ui.displayMessage("选择行动: [1]攻击 [2]技能 [3]道具 [4]逃跑 [5]查看状态", UIManager::Color::WHITE);
+    
     int choice = 0;
     while (!(std::cin >> choice) || choice < 1 || choice > 5)
     {
@@ -629,4 +410,198 @@ CombatResult CombatSystem::handlePlayerAction(Player& player, Enemy& enemy, cons
     }
     }
     return CombatResult::Continue; // 继续战斗
+}
+
+CombatResult CombatSystem::startCombat(Player& player, CommonEnemy& enemy, const std::map<int, std::unique_ptr<Item>>& itemDb)
+{
+    ui.displayMessage("战斗开始！你遭遇了 " + enemy.getName() + "!", UIManager::Color::MAGENTA);
+    ui.displayMessage("敌人等级: " + std::to_string(enemy.getLevel()), UIManager::Color::WHITE);
+    
+    while (player.isAlive() && enemy.isAlive())
+    {
+        // 显示当前状态
+        ui.displayMessage("你的状态: HP " + std::to_string(player.getHP()) + "/" + std::to_string(player.getMaxHP()) + 
+                         " | MP " + std::to_string(player.getMP()) + "/" + std::to_string(player.getMaxMP()), 
+                         UIManager::Color::GREEN);
+        ui.displayMessage(enemy.getName() + " 的状态: HP " + std::to_string(enemy.getHP()) + "/" + std::to_string(enemy.getMaxHP()), 
+                         UIManager::Color::RED);
+        
+        // 玩家回合
+        CombatResult playerResult = playerTurn(player, enemy, itemDb);
+        if (playerResult != CombatResult::Continue) {
+            return playerResult;
+        }
+        
+        if (!enemy.isAlive()) {
+            ui.displayMessage("你击败了 " + enemy.getName() + "!", UIManager::Color::GREEN);
+            player.addExp(enemy.getExpReward());
+            player.addGold(enemy.getGoldReward());
+            ui.displayMessage("获得 " + std::to_string(enemy.getExpReward()) + " 经验值和 " + 
+                             std::to_string(enemy.getGoldReward()) + " 金币!", UIManager::Color::YELLOW);
+            return CombatResult::Victory;
+        }
+        
+        // 敌人回合
+        enemyTurn(enemy, player);
+        
+        if (!player.isAlive()) {
+            ui.displayMessage("你被 " + enemy.getName() + " 击败了...", UIManager::Color::RED);
+            ui.displayMessage("选择: [1]重试 [2]读档 [3]退出游戏", UIManager::Color::YELLOW);
+            
+            int choice = 0;
+            while (!(std::cin >> choice) || choice < 1 || choice > 3) {
+                std::cout << "无效输入，请输入 1-3: ";
+                std::cin.clear();
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            }
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            
+            switch (choice) {
+                case 1: return CombatResult::Defeat_Restart;
+                case 2: return CombatResult::Defeat_Load;
+                case 3: return CombatResult::Defeat_Exit;
+                default: return CombatResult::Defeat_Restart;
+            }
+        }
+    }
+    
+    return CombatResult::Continue;
+}
+
+CombatResult CombatSystem::startCombat(Player& player, EvilGeneral& boss, const std::map<int, std::unique_ptr<Item>>& itemDb)
+{
+    ui.displayMessage("=====================================================", UIManager::Color::MAGENTA);
+    ui.displayMessage("BOSS战斗开始！你面对的是强大的 " + boss.getName() + "!", UIManager::Color::MAGENTA);
+    ui.displayMessage("=====================================================", UIManager::Color::MAGENTA);
+    
+    // 显示战前对话
+    ui.displayMessage(boss.getPreBattleDialogue(), UIManager::Color::WHITE);
+    ui.pause();
+    
+    while (player.isAlive() && boss.isAlive())
+    {
+        // 显示当前状态
+        ui.displayMessage("你的状态: HP " + std::to_string(player.getHP()) + "/" + std::to_string(player.getMaxHP()) + 
+                         " | MP " + std::to_string(player.getMP()) + "/" + std::to_string(player.getMaxMP()), 
+                         UIManager::Color::GREEN);
+        ui.displayMessage(boss.getName() + " 的状态: HP " + std::to_string(boss.getHP()) + "/" + std::to_string(boss.getMaxHP()), 
+                         UIManager::Color::RED);
+        
+        // 玩家回合
+        CombatResult playerResult = playerTurn(player, boss, itemDb);
+        if (playerResult != CombatResult::Continue) {
+            return playerResult;
+        }
+        
+        if (!boss.isAlive()) {
+            ui.displayMessage("你击败了 " + boss.getName() + "!", UIManager::Color::GREEN);
+            ui.displayMessage(boss.getDefeatDialogue(), UIManager::Color::WHITE);
+            player.addExp(boss.getExpReward());
+            player.addGold(boss.getGoldReward());
+            ui.displayMessage("获得 " + std::to_string(boss.getExpReward()) + " 经验值和 " + 
+                             std::to_string(boss.getGoldReward()) + " 金币!", UIManager::Color::YELLOW);
+            return CombatResult::Victory;
+        }
+        
+        // 敌人回合
+        enemyTurn(boss, player);
+        
+        if (!player.isAlive()) {
+            ui.displayMessage("你被 " + boss.getName() + " 击败了...", UIManager::Color::RED);
+            ui.displayMessage(boss.getVictoryDialogue(), UIManager::Color::WHITE);
+            ui.displayMessage("选择: [1]重试 [2]读档 [3]退出游戏", UIManager::Color::YELLOW);
+            
+            int choice = 0;
+            while (!(std::cin >> choice) || choice < 1 || choice > 3) {
+                std::cout << "无效输入，请输入 1-3: ";
+                std::cin.clear();
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            }
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            
+            switch (choice) {
+                case 1: return CombatResult::Defeat_Restart;
+                case 2: return CombatResult::Defeat_Load;
+                case 3: return CombatResult::Defeat_Exit;
+                default: return CombatResult::Defeat_Restart;
+            }
+        }
+    }
+    
+    return CombatResult::Continue;
+}
+
+CombatResult CombatSystem::startCombat(Player& player, BossWanEshuji& boss, const std::map<int, std::unique_ptr<Item>>& itemDb)
+{
+    ui.displayMessage("=====================================================", UIManager::Color::MAGENTA);
+    ui.displayMessage("最终决战开始！你面对的是万恶枢机！", UIManager::Color::MAGENTA);
+    ui.displayMessage("=====================================================", UIManager::Color::MAGENTA);
+    
+    // 显示战前对话
+    ui.displayMessage(boss.getPreBattleDialogue(), UIManager::Color::WHITE);
+    ui.pause();
+    
+    while (player.isAlive() && boss.isAlive())
+    {
+        // 检查是否需要进入下一阶段
+        if (boss.shouldEnterNextPhase()) {
+            boss.enterNextPhase();
+            ui.pause();
+        }
+        
+        // 显示当前状态（包含阶段信息）
+        ui.displayMessage("你的状态: HP " + std::to_string(player.getHP()) + "/" + std::to_string(player.getMaxHP()) + 
+                         " | MP " + std::to_string(player.getMP()) + "/" + std::to_string(player.getMaxMP()), 
+                         UIManager::Color::GREEN);
+        ui.displayMessage(boss.getName() + " (第" + std::to_string(boss.getPhase()) + "阶段) 的状态: HP " + 
+                         std::to_string(boss.getHP()) + "/" + std::to_string(boss.getMaxHP()), 
+                         UIManager::Color::RED);
+        
+        // 玩家回合
+        CombatResult playerResult = playerTurn(player, boss, itemDb);
+        if (playerResult != CombatResult::Continue) {
+            return playerResult;
+        }
+        
+        if (!boss.isAlive()) {
+            ui.displayMessage("你击败了万恶枢机！世界得救了！", UIManager::Color::GREEN);
+            ui.displayMessage(boss.getDefeatDialogue(), UIManager::Color::WHITE);
+            player.addExp(boss.getExpReward());
+            player.addGold(boss.getGoldReward());
+            ui.displayMessage("获得 " + std::to_string(boss.getExpReward()) + " 经验值和 " + 
+                             std::to_string(boss.getGoldReward()) + " 金币!", UIManager::Color::YELLOW);
+            return CombatResult::Victory;
+        }
+        
+        // 敌人回合
+        enemyTurn(boss, player);
+        
+        if (!player.isAlive()) {
+            ui.displayMessage("你被万恶枢机击败了...", UIManager::Color::RED);
+            ui.displayMessage(boss.getVictoryDialogue(), UIManager::Color::WHITE);
+            ui.displayMessage("选择: [1]重试 [2]读档 [3]退出游戏", UIManager::Color::YELLOW);
+            
+            int choice = 0;
+            while (!(std::cin >> choice) || choice < 1 || choice > 3) {
+                std::cout << "无效输入，请输入 1-3: ";
+                std::cin.clear();
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            }
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            
+            switch (choice) {
+                case 1: return CombatResult::Defeat_Restart;
+                case 2: return CombatResult::Defeat_Load;
+                case 3: return CombatResult::Defeat_Exit;
+                default: return CombatResult::Defeat_Restart;
+            }
+        }
+    }
+    
+    return CombatResult::Continue;
+}
+
+CombatResult CombatSystem::playerTurn(Player& player, BossWanEshuji& boss, const std::map<int, std::unique_ptr<Item>>& itemDb)
+{
+    return handlePlayerAction(player, boss, itemDb);
 }

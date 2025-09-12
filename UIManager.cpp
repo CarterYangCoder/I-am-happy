@@ -5,6 +5,8 @@
 #include <iostream>
 #include <iomanip>
 #include <windows.h>
+#include <sstream>
+#include <vector>
 
 void UIManager::displayMessage(const std::string& message, Color color) const {
     // 设置控制台编码为UTF-8以支持中文显示
@@ -119,8 +121,9 @@ void UIManager::displayPlayerStatus(const Player& player, const std::string& las
         displayMessage("暂无已解锁技能", Color::GRAY);
     } else {
         for (const auto& skill : skills) {
-            std::cout << "\033[33m[" << skill->getName() << "]\033[0m ";
-            std::cout << "\033[37m" << skill->getDescription() << "\033[0m" << std::endl;
+            if (skill) {
+                displayMessage("- " + skill->getName(), Color::WHITE);
+            }
         }
     }
     displayMessage("-------------------", Color::YELLOW);
@@ -132,15 +135,14 @@ void UIManager::displayPlayerStatus(const Player& player, const std::string& las
         displayMessage("背包为空", Color::GRAY);
     } else {
         for (const auto& item : inventory) {
-            std::cout << "\033[32m" << item.first << "\033[0m: \033[37m" << item.second << "个\033[0m" << std::endl;
+            displayMessage(item.first + " x" + std::to_string(item.second), Color::WHITE);
         }
     }
-    
     displayMessage("------------------", Color::GREEN);
     
     // 显示最近操作物品及效果
     if (!lastActionMsg.empty()) {
-        displayMessage("最近操作: " + lastActionMsg, Color::MAGENTA);
+        displayMessage("最近操作: " + lastActionMsg, Color::CYAN);
     }
 }
 
@@ -157,8 +159,8 @@ void UIManager::displaySimpleCombatStatus(const Attribute& player, const Attribu
     std::cout << "\033[31m" << std::setw(15)<<std::left << enemy.getName()
               << " Lv." << std::setw(3) << enemy.getLevel()
               << " H P: " << std::setw(4) << enemy.getHP() << "/" << std::setw(4) << enemy.getMaxHP() << "\033[0m" << std::endl;
-    std::cout << std::setw(19) << " " << "\033[19mEXP: " << std::setw(6) << player.getExp() << "/" << std::setw(4) << player.getExpToNextLevel() << "\033[0m" << std::endl;
-    std::cout << std::setw(19) << " " << "\033[19mM P: " << std::setw(6) << player.getMP() << "/" << std::setw(4) << player.getMaxMP() << "\033[0m" << std::endl;
+    std::cout << std::setw(19) << " " << "\033[32mEXP: " << std::setw(4) << player.getExp() << "/" << std::setw(4) << player.getExpToNextLevel() << "\033[0m" << std::endl;
+    std::cout << std::setw(19) << " " << "\033[32mM P: " << std::setw(4) << player.getMP() << "/" << std::setw(4) << player.getMaxMP() << "\033[0m" << std::endl;
     std::cout << "\033[36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m" << std::endl;
 }
 
@@ -178,3 +180,30 @@ void UIManager::displayMoveHelp() const {
     displayMessage("移动命令: go <方向> (如: go N, go NE, go S, go U, go D)", Color::CYAN);
     displayMessage("方向英文: N=北 NE=东北 E=东 SE=东南 S=南 SW=西南 W=西 NW=西北 U=上 D=下", Color::GRAY);
 }
+
+void UIManager::displayDialogueBlock(const std::string& text, Color color, const std::string& continuePrompt) const {
+    std::istringstream iss(text);
+    std::string line;
+    bool first = true;
+    while (std::getline(iss, line)) {
+        if (!first) {
+            displayMessage(continuePrompt, Color::GRAY);
+            std::string dummy;
+            std::getline(std::cin, dummy);
+        }
+        first = false;
+        displayMessage(line, color);
+    }
+}
+
+void UIManager::displayDialogueLines(const std::vector<std::string>& lines, Color color, const std::string& continuePrompt) const {
+    for (size_t i = 0; i < lines.size(); ++i) {
+        if (i > 0) {
+            displayMessage(continuePrompt, Color::GRAY);
+            std::string dummy;
+            std::getline(std::cin, dummy);
+        }
+        displayMessage(lines[i], color);
+    }
+}
+

@@ -1,40 +1,43 @@
+#pragma once
 #ifndef UIMANAGER_H
 #define UIMANAGER_H
 
 #include <string>
-#include <map>
-#include "GameData.h"
+#include <vector>
 
-// 前向声明
+// 前向声明，避免循环依赖
 class Player;
 class Attribute;
-class Equipment; 
 
-// 使用ANSI转义码实现跨平台颜色显示。
 class UIManager {
 public:
     enum class Color {
-        BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE, GRAY,
-        RESET // 重置颜色
+        BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE, GRAY, RESET
     };
 
-    // 显示带颜色的消息 
+    // 基础输出
     void displayMessage(const std::string& message, Color color = Color::WHITE) const;
+    void setColor(Color color) const;
 
-    // 显示玩家属性面板 
-    void displayPlayerStatus(const class Player& player) const;
-    void displayPlayerStatus(const class Player& player, const std::string& lastActionMsg) const;
+    // 角色状态
+    void displayPlayerStatus(const Player& player, const std::string& lastActionMsg) const;
+    void displayPlayerStatus(const Player& player) const;
 
-    // 显示场景描述 
+    // 战斗状态
+    void displaySimpleCombatStatus(const Attribute& player, const Attribute& enemy) const;
+
+    // 场景描述
     void displayScene(const std::string& description) const;
 
-    // 暂停，等待用户输入
+    // 暂停等待
     void pause() const;
-    void displaySimpleCombatStatus(const Attribute& player, const Attribute& enemy) const;  // 简化战斗状态显示
-    void displayMoveHelp() const; // 显示移动帮助
-private:
-    // 设置控制台文本颜色
-    void setColor(Color color) const;
+
+    // 移动帮助
+    void displayMoveHelp() const;
+
+    // 分段对话输出（逐行输出，行间按回车继续）
+    void displayDialogueBlock(const std::string& text, Color color = Color::WHITE, const std::string& continuePrompt = "按 Enter 键继续...") const;
+    void displayDialogueLines(const std::vector<std::string>& lines, Color color = Color::WHITE, const std::string& continuePrompt = "按 Enter 键继续...") const;
 };
 
 #endif // UIMANAGER_H

@@ -6,6 +6,7 @@ ShopSystem::ShopSystem(UIManager& uiManager) : ui(uiManager) {}
 void ShopSystem::initializeShop() {
     shopInventory.push_back(new HealthPotion());
     shopInventory.push_back(new EnergyPotion());
+    shopInventory.push_back(new MysteriousItem());
 
     ui.displayMessage("商店系统已初始化。", UIManager::Color::GRAY);
 }

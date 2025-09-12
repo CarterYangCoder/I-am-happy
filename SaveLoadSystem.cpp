@@ -363,10 +363,26 @@ bool SaveLoadSystem::loadGame(Player& player, TaskSystem& taskProgress)
         return false;
     }
 
-    // 清空玩家数据避免重复
+    // 完全重置玩家数据，确保存档独立性
     player.taskProgress.clear();
-    player.clearInventory();  // 使用clearInventory方法清空背包避免物品翻倍
+    player.clearInventory();
+    
+    // 重置玩家属性到初始状态
+    player.setName("安特王子");
+    player.setLevel(1);
+    player.setHP(100);
+    player.setMaxHP(100);
+    player.setATK(10);
+    player.setDEF(5);
+    player.setSpeed(5);
+    player.setExp(0);
+    player.setGold(0);
+    player.setCritRate(0.05f);
+    player.setMP(50);
+    player.setMaxMP(50);
+    player.setCurrentRoomId(1);
 
+    // 读取存档数据
     std::string dummy;
     std::getline(loadFile, dummy);
     std::stringstream meta_ss(dummy);
@@ -376,6 +392,7 @@ bool SaveLoadSystem::loadGame(Player& player, TaskSystem& taskProgress)
     if (meta_key == "META") {
         player.setName(player_name);
     }
+    
     std::string key;
     while (loadFile >> key)
     {
@@ -441,12 +458,16 @@ bool SaveLoadSystem::loadGame(Player& player, TaskSystem& taskProgress)
             loadFile >> taskId >> statusInt;
             TaskStatus status = static_cast<TaskStatus>(statusInt);
             
-            // 查找对应的任务并添加到玩家任务进度中
-            Task* task = taskProgress.findTask(taskId);
-            if (task) {
-                Task taskCopy = *task;
+            // 重要修复：正确恢复任务状态
+            Task* originalTask = taskProgress.findTask(taskId);
+            if (originalTask) {
+                // 创建任务副本并设置正确状态
+                Task taskCopy = *originalTask;
                 taskCopy.setStatus(status);
                 player.taskProgress[taskId] = taskCopy;
+                
+                // 同步任务系统中的任务状态
+                originalTask->setStatus(status);
             }
         }
         else if (key == "Equipment") {
@@ -458,27 +479,7 @@ bool SaveLoadSystem::loadGame(Player& player, TaskSystem& taskProgress)
             
             // 重新装备神器
             EquipmentPart part = static_cast<EquipmentPart>(partInt);
-            Equipment* equipment = nullptr;
-            
-            // 根据装备名称重新创建神器
-            if (equipName == "自由誓约・破枷之冠") {
-                equipment = new Equipment(equipName, EquipmentPart::HELMET, "抵抗精神控制", 15, 10, "免疫魅惑");
-            }
-            else if (equipName == "忠诚誓约・铁誓胸甲") {
-                equipment = new Equipment(equipName, EquipmentPart::CHESTPLATE, "坚固的胸甲", 20, 25, "减少背叛伤害");
-            }
-            else if (equipName == "真理誓约・明识之戒") {
-                equipment = new Equipment(equipName, EquipmentPart::RING, "看清真相", 10, 5, "识破幻象");
-            }
-            else if (equipName == "怜悯誓约・抚伤之链") {
-                equipment = new Equipment(equipName, EquipmentPart::NECKLACE, "治愈之链", 5, 15, "战斗回血");
-            }
-            else if (equipName == "希望誓约・晨曦披风") {
-                equipment = new Equipment(equipName, EquipmentPart::CAPE, "带来希望", 25, 20, "提升士气");
-            }
-            else if (equipName == "秩序誓约・创世战靴") {
-                equipment = new Equipment(equipName, EquipmentPart::BOOTS, "维护秩序", 30, 15, "移动加速");
-            }
+            Equipment* equipment = createEquipmentByName(equipName);
             
             if (equipment) {
                 player.equipSetPart(equipment);
@@ -487,9 +488,6 @@ bool SaveLoadSystem::loadGame(Player& player, TaskSystem& taskProgress)
     }
 
     loadFile.close();
-    
-    // 读档后检测并添加技能
-    postLoadSkillCheck(player);
     
     // 读档后检测并添加技能
     postLoadSkillCheck(player);
