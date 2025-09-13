@@ -3,26 +3,17 @@
 #define DIVINEWEAPON_H
 #include "Equipment.h"
 
-/**
- * @class DivineWeapon
- * @brief 神剑：随玩家成长提升攻击力，并可触发技能解锁。
- */
 class DivineWeapon : public Equipment {
 private:
-    int growthLevel;  ///< 神剑成长等级（随玩家等级提升）
+    int growthLevel;  // 神剑成长等级（随玩家等级提升）
 
-public:
-    /** @brief 构造初始神剑。 */
-    DivineWeapon();
+public: 
+    DivineWeapon();  // 初始神剑（开场自带）
     DivineWeapon* clone() const override;
-
-    /** @brief 神剑成长（更新攻击力）。 */
+    // 神剑成长（随玩家等级提升攻击力）
     void grow(int playerLevel);
 
-    /**
-     * @brief 按玩家等级尝试解锁技能。
-     * @return true 解锁成功，并返回 skillType
-     */
+    // 解锁技能（根据成长等级解锁对应技能）
     bool unlockSkill(int playerLevel, SkillType& skillType);
 };
 

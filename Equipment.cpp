@@ -1,7 +1,3 @@
-/**
- * @file Equipment.cpp
- * @brief 装备实现：属性访问与使用描述。
- */
 #include "Equipment.h"
 
 Equipment::Equipment(std::string name, EquipmentPart part, std::string desc, int atk, int def, std::string effect)

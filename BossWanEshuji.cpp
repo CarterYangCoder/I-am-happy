@@ -1,10 +1,5 @@
-/**
- * @file BossWanEshuji.cpp
- * @brief 最终BOSS实现：阶段逻辑、特效与对话。
- */
 #include "BossWanEshuji.h"
 
-/** @brief 构造最终BOSS并初始化基础属性与阶段为1。 */
 BossWanEshuji::BossWanEshuji()
     : EvilGeneral("万恶枢机", EvilType::BOSS, "混沌之心", 30), phase(1) {
     // 初始化属性（远超普通将军）
@@ -15,7 +10,7 @@ BossWanEshuji::BossWanEshuji()
     setSpeed(30);
     setCritRate(0.2f);
 }
-// /** @brief 进入下一阶段并按阶段强化属性与特效。 */
+// 进入下一阶段（生命值低于33%进入阶段2，低于10%进入阶段3）
 void BossWanEshuji::enterNextPhase() {
     if (phase >= 3) return;
     phase++;
@@ -46,17 +41,17 @@ void BossWanEshuji::enterNextPhase() {
 
 int BossWanEshuji::getPhase() const { return phase; }
 
-/** @brief 特殊技能：混沌风暴（只有第三阶段才能使用） */
+// 特殊技能：混沌风暴（只有第三阶段才能使用）
 bool BossWanEshuji::canUseChaosStorm() const {
     return phase >= 3;
 }
 
-/** @brief 特殊技能：暗影冲击（第二阶段开始可用） */
+// 特殊技能：暗影冲击（第二阶段开始可用）
 bool BossWanEshuji::canUseShadowStrike() const {
     return phase >= 2;
 }
 
-/** @brief 获取当前阶段的攻击描述 */
+// 获取当前阶段的攻击描述
 std::string BossWanEshuji::getPhaseAttackDescription() const {
     switch (phase) {
         case 1:
@@ -70,7 +65,7 @@ std::string BossWanEshuji::getPhaseAttackDescription() const {
     }
 }
 
-/** @brief 阶段转换时的特殊效果 */
+// 阶段转换时的特殊效果
 void BossWanEshuji::phaseTransitionEffect() {
     switch (phase) {
         case 2:
@@ -86,7 +81,7 @@ void BossWanEshuji::phaseTransitionEffect() {
     }
 }
 
-/** @brief 检查是否应该进入下一阶段 */
+// 检查是否应该进入下一阶段
 bool BossWanEshuji::shouldEnterNextPhase() const {
     double hpPercentage = static_cast<double>(getHP()) / getMaxHP();
     
@@ -99,7 +94,7 @@ bool BossWanEshuji::shouldEnterNextPhase() const {
     return false;
 }
 
-/** @brief 对话：战前/敌败/敌胜（按阶段可变） */
+// 对话系统实现
 std::string BossWanEshuji::getPreBattleDialogue() const {
     return
         "你：\"只要信任、希望与爱尚存，你的规则注定崩坏。\"\n"

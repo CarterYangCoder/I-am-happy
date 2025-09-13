@@ -1,8 +1,3 @@
-/**
- * @file SaveLoadSystem.cpp
- * @brief 存档系统实现：枚举槽位、保存/自动保存、加载、装备重建与技能校验。
- */
-
 #include "SaveLoadSystem.h"
 #include <fstream>
 #include <filesystem>
@@ -12,14 +7,12 @@
 #include <limits>
 #include <regex>
 #include <sstream>
-
-/** @brief 判定字符串是否全为数字。 */
+ 
 bool SaveLoadSystem::is_digits_save(const std::string& str)
 {
     return !str.empty() && std::all_of(str.begin(), str.end(), ::isdigit);
 }
 
-/** @brief 时间戳转字符串（跨平台 localtime 安全版本）。 */
 std::string SaveLoadSystem::timeToString(time_t time)
 {
     std::tm tm_buf;
@@ -33,7 +26,6 @@ std::string SaveLoadSystem::timeToString(time_t time)
     return ss.str();
 }
 
-/** @brief 构造存档系统，确保存档目录存在。 */
 SaveLoadSystem::SaveLoadSystem(UIManager& uiManager) : ui(uiManager)
 {
     if (!std::filesystem::exists(SAVE_DIR))
@@ -42,7 +34,6 @@ SaveLoadSystem::SaveLoadSystem(UIManager& uiManager) : ui(uiManager)
     }
 }
 
-/** @brief 扫描存档目录，解析合法的手动存档到列表。 */
 std::vector<SaveSlot> SaveLoadSystem::listSaveSlots()
 {
     std::vector<SaveSlot> slots;
@@ -86,7 +77,6 @@ std::vector<SaveSlot> SaveLoadSystem::listSaveSlots()
     return slots;
 }
 
-/** @brief 保存游戏（自动选择空槽或覆盖既有槽）。 */
 void SaveLoadSystem::saveGame(const Player& player, const TaskSystem& taskProgress)
 {
     auto slots = listSaveSlots();
@@ -212,7 +202,6 @@ void SaveLoadSystem::saveGame(const Player& player, const TaskSystem& taskProgre
     ui.displayMessage("游戏已成功保存到槽位 " + std::to_string(slotToUse), UIManager::Color::GREEN);
 }
 
-/** @brief 自动存档：清理旧自动档并生成新自动档。 */
 void SaveLoadSystem::autoSaveGame(const Player& player, const TaskSystem& taskProgress)
 {
     // 删除旧的自动存档
@@ -284,10 +273,6 @@ void SaveLoadSystem::autoSaveGame(const Player& player, const TaskSystem& taskPr
     ui.displayMessage("游戏已自动保存", UIManager::Color::BLUE);
 }
 
-/**
- * @brief 加载存档：支持手动槽位与自动存档。
- * @details 读取基础属性、装备、背包、任务，并执行 postLoadSkillCheck。
- */
 bool SaveLoadSystem::loadGame(Player& player, TaskSystem& taskProgress)
 {
     auto slots = listSaveSlots();
@@ -516,10 +501,8 @@ bool SaveLoadSystem::loadGame(Player& player, TaskSystem& taskProgress)
     return true;
 }
 
-/**
- * @brief 读档后进行技能检测与提示。
- * @details 根据玩家等级与套装状态解锁并列出技能。
- */
+// 在读档完成后，根据等级和装备状态检测并解锁技能
+// 在读档完成后，根据等级和装备状态检测并解锁技能
 void SaveLoadSystem::postLoadSkillCheck(Player& player) {
     // 检查并解锁符合等级要求的技能
     player.checkAndUnlockSkills();
@@ -542,11 +525,7 @@ void SaveLoadSystem::postLoadSkillCheck(Player& player) {
     }
 }
 
-/**
- * @brief 从名称重建装备（用于存档恢复）。
- * @param equipmentName 存档写入的装备名
- * @return 新建的装备指针或 nullptr
- */
+// 装备重建辅助函数
 Equipment* SaveLoadSystem::createEquipmentByName(const std::string& equipmentName) {
     if (equipmentName == "自由誓约・破枷之冠") {
         return new Equipment(equipmentName, EquipmentPart::HELMET, "抵抗精神控制", 15, 10, "免疫魅惑");

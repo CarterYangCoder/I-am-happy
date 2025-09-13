@@ -1,7 +1,3 @@
-/**
- * @file CommonEnemy.cpp
- * @brief 普通敌人实现：按类型初始化属性与奖励。
- */
 #include "CommonEnemy.h"
 // 构造函数：根据敌人类型和等级初始化属性
 CommonEnemy::CommonEnemy(EnemyType type, int level)

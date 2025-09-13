@@ -1,9 +1,3 @@
-/**
- * @file UIManager.h
- * @brief UI 管理组件声明（占位）。实际实现由你项目中的 UIManager 定义提供。
- * @note 本文件为空实现占位，仅添加文档注释，不引入新逻辑。
- */
-
 #pragma once
 #ifndef UIMANAGER_H
 #define UIMANAGER_H

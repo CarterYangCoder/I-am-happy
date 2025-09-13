@@ -4,39 +4,26 @@
 #include "Item.h"
 #include "GameData.h"
 
-/**
- * @class Equipment
- * @brief 装备（也是 Item）：提供部位/属性加成与使用描述。
- */
-class Equipment : public Item {
+class Equipment : public Item { 
 private:
-    EquipmentPart part;
-    int atkBonus;
-    int defBonus;
-    std::string specialEffect;
+    EquipmentPart part;    // 装备部位
+    int atkBonus;          // 攻击力加成
+    int defBonus;          // 防御力加成
+    std::string specialEffect;  // 特殊效果（如抵抗精神控制）
 
 public:
-    /**
-     * @brief 构造装备。
-     * @param name 名称
-     * @param part 部位
-     * @param desc 描述
-     * @param atk 攻击加成
-     * @param def 防御加成
-     * @param effect 特殊效果描述
-     */
     Equipment(std::string name, EquipmentPart part, std::string desc, int atk = 0, int def = 0, std::string effect = "");
 
     EquipmentPart getPart() const;
     int getAtkBonus() const;
     int getDefBonus() const;
     std::string getSpecialEffect() const;
-
-    /** @brief 修改加成（神剑成长用）。 */
+    
+    // 属性修改方法（用于神器成长）
     void setAtkBonus(int atk);
     void setDefBonus(int def);
 
-    /** @brief 使用描述（穿戴提示）。 */
+    // 装备使用（穿戴时触发效果描述）
     std::string use() override;
     Equipment* clone() const override;
 };

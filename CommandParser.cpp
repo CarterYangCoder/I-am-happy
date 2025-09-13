@@ -1,13 +1,8 @@
-/**
- * @file CommandParser.cpp
- * @brief 简易命令解析器实现：读取与分词。
- */
 #include "CommandParser.h"
 #include <iostream>
 #include <sstream>
 #include <algorithm>
 
-/** @brief 将一行输入解析为命令与参数。 */
 Command CommandParser::parse(const std::string& input) {
     Command cmd;
     std::stringstream ss(input);
@@ -27,7 +22,6 @@ Command CommandParser::parse(const std::string& input) {
     return cmd;
 }
 
-/** @brief 读取用户输入并解析；若输入结束返回 quit。 */
 Command CommandParser::getCommand() {
     std::cout << "> ";
     std::string inputLine;

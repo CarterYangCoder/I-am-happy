@@ -7,8 +7,9 @@
 #include <vector>
 #include <functional>
 #include <optional>
-#include <memory>
-
+#include <memory> // 添加头文件支持智能指针
+ 
+// 包含所有依赖的自定义类的头文件
 #include "UIManager.h"
 #include "BossWanEshuji.h"
 #include "CombatSystem.h"
@@ -19,37 +20,26 @@
 #include "Player.h"
 #include "Map.h"
 #include "NPC.h"
-
-/**
- * @enum GameState
- * @brief 游戏状态：探索/商店/战斗。
- */
+// 游戏状态枚举
 enum class GameState {
     Exploring,
     InShop,
     InCombat
 };
 
-/**
- * @class Game
- * @brief 游戏主控：负责主循环、命令注册与处理、场景/战斗/存档的组织与协调。
- */
+// Game类声明
 class Game {
 public:
-    /**
-     * @brief 构造函数。
-     * @param loadFromSave 是否从存档启动
-     * @param loadedPlayer 已加载的玩家（可空）
-     */
+    // 构造函数 - 支持读档启动
     Game(bool loadFromSave = false, Player* loadedPlayer = nullptr);
-
-    /** @brief 运行游戏主循环。 */
+    // 运行游戏的主循环
     void run();
 
 private:
+    // 成员变量
     UIManager ui;
     Player player;
-    Map gameMap;
+    Map gameMap;                // 游戏地图
     CombatSystem combat;
     TaskSystem tasks;
     ShopSystem shop;
@@ -57,21 +47,22 @@ private:
     SaveLoadSystem saveLoad;
     bool isRunning;
     GameState currentState;
-    bool startedFromSave;
-
+    bool startedFromSave; // 是否从存档启动
+    
+    // 游戏内所有物品的数据库
     std::map<int, std::unique_ptr<Item>> itemDb;
-
+    
+    // 命令处理相关
     using CommandHandler = std::function<void(const std::vector<std::string>&)>;
     std::map<std::string, CommandHandler> commandHandlers;
     std::map<std::string, std::string> commandAliases;
 
+    // 最近操作物品及效果
     std::string lastActionMsg;
 
-    /** @brief 设置命令别名映射。 */
+    // 私有辅助函数
     void setupCommandAliases();
-    /** @brief 将别名/大小写转换为标准命令键。 */
     std::string getCanonicalCommand(std::string cmd);
-    /** @brief 注册所有命令与处理器。 */
     void registerCommands();
 };
 

@@ -1,7 +1,3 @@
-/**
- * @file CombatSystem.cpp
- * @brief 战斗实现：行动选择、技能/道具、逃跑、敌方回合与阶段逻辑。
- */
 #include "CombatSystem.h"
 #include "UIManager.h"
 #include <iostream>
@@ -10,7 +6,6 @@
 #include <limits>
 #include <iomanip>
 
-/** @brief 构造战斗系统。 */
 CombatSystem::CombatSystem(UIManager &uiManager) : ui(uiManager) {}
 
 bool is_digits(const std::string &str)

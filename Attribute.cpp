@@ -1,7 +1,3 @@
-/**
- * @file Attribute.cpp
- * @brief 属性基类实现：访问/修改、升级逻辑与生命蓝量操作。
- */
 #include "Attribute.h"
 #include <iostream>
 #include <cstdlib>

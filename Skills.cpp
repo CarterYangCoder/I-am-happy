@@ -1,24 +1,6 @@
-/**
- * @file Skills.cpp
- * @brief 技能实体实现：威力成长、MP 成本、详细描述等。
- */
-
 #include "Skills.h"
 #include <algorithm>
 
-/**
- * @brief 构造技能。
- * @param type 技能类型
- * @param name 技能名称
- * @param desc 技能描述
- * @param unlockLv 解锁等级
- * @param target 施放目标
- * @param dmgType 伤害/类型
- * @param power 基础威力
- * @param growth 每级成长系数（按解锁等级起算）
- * @param baseMpCost 基础 MP 消耗（<0 时按类型套默认值）
- * @param mpCostGrowth 每级 MP 消耗成长
- */
 Skill::Skill(SkillType type, std::string name, std::string desc, int unlockLv,
     SkillTarget target, DamageType dmgType, int power, float growth,
     int baseMpCost, float mpCostGrowth)
@@ -30,7 +12,7 @@ Skill::Skill(SkillType type, std::string name, std::string desc, int unlockLv,
     if (this->baseMpCost < 0) {
         switch (damageType) {
         case DamageType::MAGICAL:
-            this->baseMpCost = DEFAULT_MP_COST_MAGICAL;
+            this->baseMpCost = DEFAULT_MP_COST_MAGICAL; break;
         case DamageType::PHYSICAL:
             this->baseMpCost = DEFAULT_MP_COST_PHYSICAL; break;
         case DamageType::BUFF:
@@ -42,26 +24,15 @@ Skill::Skill(SkillType type, std::string name, std::string desc, int unlockLv,
     }
 }
 
-/** @brief 获取技能类型。 */
 SkillType Skill::getType() const { return type; }
-/** @brief 获取技能名。 */
 std::string Skill::getName() const { return name; }
-/** @brief 获取技能描述。 */
 std::string Skill::getDescription() const { return description; }
-/** @brief 获取解锁等级。 */
 int Skill::getUnlockLevel() const { return unlockLevel; }
-/** @brief 获取施放目标。 */
 SkillTarget Skill::getTarget() const { return target; }
-/** @brief 获取技能伤害/类型。 */
 DamageType Skill::getDamageType() const { return damageType; }
-/** @brief 获取基础威力（未成长）。 */
 int Skill::getPower() const { return basePower; }
 
-/**
- * @brief 计算按施放者等级成长后的实际威力。
- * @param casterLevel 施放者等级
- * @return 成长后的威力（>=1）
- */
+// 新增：按施放者等级计算成长后的实际威力
 int Skill::getScaledPower(int casterLevel) const {
     int deltaLevel = std::max(0, casterLevel - unlockLevel); // 解锁等级起算
     // 线性成长：base * (1 + growth * delta)
@@ -70,11 +41,7 @@ int Skill::getScaledPower(int casterLevel) const {
     return std::max(1, result);
 }
 
-/**
- * @brief 计算按施放者等级成长后的 MP 消耗。
- * @param casterLevel 施放者等级
- * @return MP 消耗（>=1）
- */
+// 新增：按施放者等级计算MP消耗（解锁等级起算线性成长）
 int Skill::getMpCost(int casterLevel) const {
     int deltaLevel = std::max(0, casterLevel - unlockLevel);
     float scaled = static_cast<float>(baseMpCost) * (1.0f + mpCostGrowthPerLevel * deltaLevel);
@@ -82,11 +49,7 @@ int Skill::getMpCost(int casterLevel) const {
     return std::max(1, result);
 }
 
-/**
- * @brief 生成技能的富文本详细描述（含类型、等级、威力、MP）。
- * @param casterLevel 施放者等级
- * @return 可打印的介绍字符串
- */
+// 新增：获取技能详细描述
 std::string Skill::getDetailedDescription(int casterLevel) const {
     std::string detail = "\033[36m=== " + name + " ===\033[0m\n";
     detail += "\033[37m类型：\033[0m";

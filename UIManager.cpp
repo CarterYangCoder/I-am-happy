@@ -1,8 +1,3 @@
-/**
- * @file UIManager.cpp
- * @brief UI 管理组件实现（占位）。此处仅加入文档注释，不改动功能。
- */
-
 #include "UIManager.h"
 #include "Player.h"
 #include "Attribute.h"

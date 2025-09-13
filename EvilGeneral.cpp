@@ -1,12 +1,7 @@
-/**
- * @file EvilGeneral.cpp
- * @brief 恶念将军实现：属性构造与战斗对话。
- */
 #include "EvilGeneral.h"
 #include <iostream>
 #include <cstdlib>
 
-/** @brief 构造 BOSS：按等级初始化属性。 */
 EvilGeneral::EvilGeneral(std::string name, EvilType type, std::string territory, int level)
     :CommonEnemy (EnemyType::BOSS,level), evilType(type), territory(territory) {
     setName(name);  // 设置BOSS的名称
@@ -19,12 +14,12 @@ EvilGeneral::EvilGeneral(std::string name, EvilType type, std::string territory,
     setCritRate(0.05f + level * 0.01f);
 }
 
-/** @brief 虚析构（资源清理占位）。 */
+// 虚析构函数实现
 EvilGeneral::~EvilGeneral() {
     // 清理资源
 }
 
-/** @brief 战前对话。 */
+// 对话系统实现（加入主角台词穿插）
 std::string EvilGeneral::getPreBattleDialogue() const {
     switch (evilType) {
     case EvilType::POWER_HUNGRY:
@@ -62,7 +57,6 @@ std::string EvilGeneral::getPreBattleDialogue() const {
     }
 }
 
-/** @brief 敌方被击败台词。 */
 std::string EvilGeneral::getDefeatDialogue() const {
     switch (evilType) {
     case EvilType::POWER_HUNGRY:
@@ -100,7 +94,6 @@ std::string EvilGeneral::getDefeatDialogue() const {
     }
 }
 
-/** @brief 敌方胜利台词。 */
 std::string EvilGeneral::getVictoryDialogue() const {
     switch (evilType) {
     case EvilType::POWER_HUNGRY:

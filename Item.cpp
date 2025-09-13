@@ -1,10 +1,5 @@
-/**
- * @file Item.cpp
- * @brief 物品基类与三种派生物品实现。
- */
 #include "Item.h"
 
-/** @brief 物品基类构造。 */
 Item::Item(int id,std::string name, ItemType type, std::string desc, int price)
     :id(id), name(name), type(type), description(desc), price(price) {}
 
@@ -12,19 +7,17 @@ std::string Item::getName() const { return name; }
 ItemType Item::getType() const { return type; }
 std::string Item::getDescription() const { return description; }
 int Item::getPrice() const { return price; }
-int Item::getId() const { return id; }
+int Item::getId() const { return id; } 
 
-/** @brief 生命药水实现。 */
+// 具体物品子类实现
 HealthPotion::HealthPotion() :Item(1,"生命药水", ItemType::HEALTH_POTION, "回复50%生命值", 50) {}
 std::string HealthPotion::use() { return "回复50%生命值"; }
 int HealthPotion::getHealAmount() const { return 50; } // 这里返回百分比，实际使用时需要根据玩家最大生命值计算
 
-/** @brief 能量药水实现。 */
 EnergyPotion::EnergyPotion() : Item(2,"能量药水", ItemType::ENERGY_POTION, "回复50%当前蓝量", 100) {}
 std::string EnergyPotion::use() { return "回复50%当前蓝量"; }
 bool EnergyPotion::grantsExtraAction() const { return false; } // 不再提供额外行动
 
-/** @brief 神秘商品实现（事件演出）。 */
 MysteriousItem::MysteriousItem() : Item(3,"神秘商品", ItemType::MISC, "看起来很神秘，不知道是什么", 10) {}
 std::string MysteriousItem::use() { 
     std::cout << "神秘商人突然出现！" << std::endl;

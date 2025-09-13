@@ -7,110 +7,84 @@
 #include "TaskSystem.h"
 #include "DivineSet.h"
 #include <vector>
-#include <map>
+#include <map> 
 #include <iostream>
 
-/**
- * @class Player
- * @brief 玩家实体：继承 Attribute，增加装备/技能/任务/物品与临时增益。
- */
 class Player : public Attribute {
 private:
-    DivineWeapon* divineSword;   ///< 六圣裁恶神剑
-    DivineSet divineSet;         ///< 六誓圣辉套装
-    std::vector<Skill*> skills;  ///< 已解锁技能
-    int currentRoomId;           ///< 所在房间ID
-    int physicalShieldTurns;     ///< 物理护盾剩余回合
-
-    // 临时增益状态
-    int speedBoostTurns;
-    int speedBoostAmount;
-    int defenseBoostTurns;
-    int defenseBoostAmount;
-
+    DivineWeapon* divineSword;                  // 六圣裁恶神剑（唯一神器）
+    DivineSet divineSet;                        // 六誓圣辉救赎套装
+    std::vector<Skill*> skills;                 // 已解锁技能
+    int currentRoomId;                          // 当前所在房间ID
+    int physicalShieldTurns;                    // 新增：物理伤害护盾剩余回合数
+    
+    // 新增：临时增益状态管理
+    int speedBoostTurns;                        // 速度增益剩余回合数
+    int speedBoostAmount;                       // 速度增益数值
+    int defenseBoostTurns;                      // 防御增益剩余回合数
+    int defenseBoostAmount;                     // 防御增益数值
+    
 public:
-    /**
-     * @brief 构造玩家。
-     * @param name 名称（默认“安特王子”）
-     */
     Player(std::string name = "安特王子");
-    /** @brief 析构释放资源。 */
     ~Player();
     int extraActionTurns;
-
-    /** @name 位置管理 */
-    ///@{
+    
+    // 位置管理
     int getCurrentRoomId() const { return currentRoomId; }
     void setCurrentRoomId(int roomId) { currentRoomId = roomId; }
-    ///@}
-
-    /** @name 神器与套装 */
-    ///@{
-    void equipSetPart(Equipment* part);
+    // 神器与装备管理
+    void equipSetPart(Equipment* part);         // 装备套装部件
     DivineWeapon* getDivineSword() const;
-    bool hasAllSetParts() const;
+    bool hasAllSetParts() const;                // 检查是否集齐套装
     std::map<EquipmentPart, Equipment*> getAllEquippedItems() const;
-    ///@}
 
-    /** @brief 重写升级：同步技能解锁与神剑成长。 */
+    // 重写升级方法，包含技能解锁逻辑
     bool levelUp() override;
 
-    /** @name 技能管理 */
-    ///@{
-    void unlockSkill(SkillType type);
-    void checkAndUnlockSkills();
+    // 技能管理
+    void unlockSkill(SkillType type);           // 解锁技能
+    void checkAndUnlockSkills();                // 检查并解锁符合等级要求的技能
     std::vector<Skill*> getSkills() const;
     Skill* getSkill(SkillType type) const;
-    ///@}
 
-    /** @name 任务管理 */
-    ///@{
-    std::map<std::string, Task> taskProgress;
+    // 任务管理
+    std::map<std::string, Task> taskProgress;   // 任务进度（任务ID->是否完成）
     void updateTaskProgress(std::string taskID, TaskStatus status);
     bool isTaskCompleted(std::string taskID) const;
-    ///@}
 
-    /** @name 物品管理 */
-    ///@{
+    //物品管理
     std::map<std::string, int> inventory;
     void addItem(const Item& item, int quantity = 1);
     void addItemByName(const std::string& itemName, int quantity = 1);
     bool useItem(const std::string& itemName);
     const std::map<std::string, int>& getInventory() const;
-    void clearInventory();
+    void clearInventory(); // 添加清空背包方法
+
+    // 新增：物品售卖和丢弃功能
     bool sellItem(const std::string& itemName, int quantity = 1);
     bool dropItem(const std::string& itemName, int quantity = 1);
     bool canSellItem(const std::string& itemName) const;
     int getItemSellPrice(const std::string& itemName) const;
-    ///@}
 
-    /** @name 蓝量管理 */
-    ///@{
+    // 蓝条管理
     int getMP() const { return Attribute::getMP(); }
     int getMaxMP() const { return Attribute::getMaxMP(); }
     void setMP(int value) { Attribute::setMP(value); }
     void setMaxMP(int value) { Attribute::setMaxMP(value); }
-    ///@}
 
-    /** @name 物理护盾 */
-    ///@{
+    // 新增：物理护盾状态管理
     int getPhysicalShieldTurns() const { return physicalShieldTurns; }
     void addPhysicalShieldTurns(int turns) { physicalShieldTurns = std::max(0, physicalShieldTurns + turns); }
     void consumePhysicalShieldTurn() { if (physicalShieldTurns > 0) --physicalShieldTurns; }
-    ///@}
 
-    /** @name 临时增益 */
-    ///@{
+    // 新增：临时增益状态管理
     void addSpeedBoost(int amount, int turns);
     void addDefenseBoost(int amount, int turns);
-    void updateBuffTurns();
-    std::string getBuffStatus() const;
-    ///@}
+    void updateBuffTurns();                     // 每回合结束时调用，减少增益剩余时间
+    std::string getBuffStatus() const;          // 获取当前增益状态描述
 
-    /** @brief 从背包装备指定装备名。 */
+    // 主动穿戴装备（通过装备名）
     bool equipFromInventory(const std::string& equipmentName);
-
-    /** @brief 增加经验（内部处理升级循环）。 */
     void addExp(int value);
 };
 
