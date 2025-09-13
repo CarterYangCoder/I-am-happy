@@ -5,32 +5,43 @@
 #include <iostream>
 #include <vector>
 
+/**
+ * @class BossWanEshuji
+ * @brief 最终BOSS：三阶段形态，阶段间属性与技能变化。
+ */
 class BossWanEshuji : public EvilGeneral {
 private:
-    int phase;                  // 战斗阶段（1-3）
+    int phase;  ///< 战斗阶段（1-3）
+
 public:
+    /** @brief 构造最终BOSS并初始化属性与阶段。 */
     BossWanEshuji();
-    // 多阶段战斗逻辑（阶段提升时属性变化）
+
+    /** @brief 进入下一阶段并触发阶段特效。 */
     void enterNextPhase();
+
+    /** @brief 获取当前阶段。 */
     int getPhase() const;
+
+    /** @brief 名称工具。 */
     static std::string getEnemyName() { return "万恶枢机"; }
 
-    // 特殊技能：混沌风暴（只有第三阶段才能使用）
+    /** @brief 第三阶段专属的混沌风暴是否可用。 */
     bool canUseChaosStorm() const;
-    
-    // 特殊技能：暗影冲击（第二阶段开始可用）
+
+    /** @brief 第二阶段开始可用的暗影冲击。 */
     bool canUseShadowStrike() const;
-    
-    // 获取当前阶段的攻击描述
+
+    /** @brief 获取当前阶段的攻击描述。 */
     std::string getPhaseAttackDescription() const;
 
-    // 阶段转换时的特殊效果
+    /** @brief 阶段切换时执行的特效（回血等）。 */
     void phaseTransitionEffect();
-    
-    // 检查是否应该进入下一阶段
+
+    /** @brief 条件满足时进入下一阶段。 */
     bool shouldEnterNextPhase() const;
 
-    // 对话系统（重写父类的虚函数）
+    /** @brief 覆写：战前/敌败/敌胜 对话。 */
     std::string getPreBattleDialogue() const override;
     std::string getDefeatDialogue() const override;
     std::string getVictoryDialogue() const override;

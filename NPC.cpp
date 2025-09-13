@@ -1,27 +1,32 @@
+/**
+ * @file NPC.cpp
+ * @brief NPC 对话系统实现：按任务状态选择台词并分页显示。
+ */
 #include "NPC.h"
 #include <iostream>
 
-// NPC 类构造函数
-NPC::NPC(std::string name, NPCType type, 
+/** @brief NPC 构造函数。 */
+NPC::NPC(std::string name, NPCType type,
          std::vector<std::string> firstDialogues,
          std::vector<std::string> incompleteDialogues,
          std::vector<std::string> completeDialogues,
          std::vector<std::string> rewardedDialogues,
          std::string taskID)
-    : name(name), type(type), 
+    : name(name), type(type),
       firstMeetingDialogues(firstDialogues),
       taskIncompleteDialogues(incompleteDialogues),
       taskCompleteDialogues(completeDialogues),
       taskRewardedDialogues(rewardedDialogues),
       taskID(taskID) {}
 
-// 获取 NPC 名称
+/** @brief 获取 NPC 名称。 */
 std::string NPC::getName() const { return name; }
-
-// 获取 NPC 类型
+/** @brief 获取 NPC 类型。 */
 NPCType NPC::getType() const { return type; }
 
-// 根据任务状态显示对应对话
+/**
+ * @brief 按任务状态与是否首次见面选择台词并分页显示。
+ */
 void NPC::showDialogueByStatus(UIManager& ui, TaskStatus status, bool hasMetBefore) const {
     auto starts_with = [](const std::string& s, const std::string& prefix) {
         return s.rfind(prefix, 0) == 0;
@@ -72,5 +77,5 @@ void NPC::showDialogueByStatus(UIManager& ui, TaskStatus status, bool hasMetBefo
     }
 }
 
-// 获取可发放任务ID
+/** @brief 获取可发放任务ID。 */
 std::string NPC::getTaskID() const { return taskID; }

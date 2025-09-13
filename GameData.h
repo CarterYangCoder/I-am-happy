@@ -2,6 +2,11 @@
 #ifndef GAMEDATA_H
 #define GAMEDATA_H
 
+/**
+ * @file GameData.h
+ * @brief 全局常量与通用枚举定义：暴击/成长倍率、装备部位、技能类型等。
+ */
+
 // 核心常量定义
 const float DEFAULT_CRIT_DAMAGE_MULTIPLE = 2.5f; // 暴击伤害为2.5倍
 const float LEVEL_UP_ATTR_MULTIPLIER = 1.15f; // 等级提升属性倍率

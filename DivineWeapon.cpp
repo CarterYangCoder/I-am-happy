@@ -1,7 +1,12 @@
+/**
+ * @file DivineWeapon.cpp
+ * @brief 神剑实现：成长与技能解锁。
+ */
 #include "DivineWeapon.h"
 #include <iostream>
 #include "Skills.h"
 
+/** @brief 构造初始神剑。 */
 DivineWeapon::DivineWeapon() 
     : Equipment("六圣裁恶神剑", EquipmentPart::SWORD, "传说中的神器，随使用者成长", 20, 5, "神圣力量"),
       growthLevel(1) {}
@@ -10,7 +15,7 @@ DivineWeapon* DivineWeapon::clone() const {
     return new DivineWeapon(*this);
 }
 
-// 神剑成长（随玩家等级提升攻击力）
+/** @brief 神剑成长：按玩家等级线性提升攻击力并提示。 */
 void DivineWeapon::grow(int playerLevel) {
     if (playerLevel > growthLevel) {
         int oldAtk = getAtkBonus();
@@ -25,7 +30,10 @@ void DivineWeapon::grow(int playerLevel) {
     }
 }
 
-// 解锁技能（根据成长等级解锁对应技能）
+/**
+ * @brief 尝试按玩家等级解锁终极技能。
+ * @return true 已解锁并设置 skillType
+ */
 bool DivineWeapon::unlockSkill(int playerLevel, SkillType& skillType) {
     if (playerLevel >= 50) {
         skillType = SkillType::ULTIMATE_SLAY;

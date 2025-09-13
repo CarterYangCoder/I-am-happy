@@ -1,7 +1,13 @@
+/**
+ * @file Player.cpp
+ * @brief 玩家实体实现：装备/技能/任务/物品/增益与升级逻辑。
+ */
+
 #include "Player.h"
 #include <sstream>
 #include <iostream>
 
+/** @brief 构造玩家并初始化状态与初始技能。 */
 Player::Player(std::string name) : Attribute(name) {
     // 初始化神剑（开场自带）
     divineSword = new DivineWeapon();
@@ -20,7 +26,7 @@ Player::Player(std::string name) : Attribute(name) {
 }
 
 Player::~Player() {
-
+    /** @brief 释放神剑与技能资源。 */
     if (divineSword != nullptr) {
         delete divineSword;
         divineSword = nullptr;
@@ -31,7 +37,7 @@ Player::~Player() {
     skills.clear();
 }
 
-// 装备套装部件
+/** @brief 装备套装部件并在集齐后触发共鸣与技能解锁。 */
 void Player::equipSetPart(Equipment* part) {
     if (!part) return;
     divineSet.addPart(part);
@@ -76,10 +82,10 @@ void Player::equipSetPart(Equipment* part) {
     }
 }
 
-// 获取神剑
+/** @brief 获取神剑指针。 */
 DivineWeapon* Player::getDivineSword() const { return divineSword; }
 
-// 检查是否集齐套装（6个部件）
+/** @brief 是否集齐套装。 */
 bool Player::hasAllSetParts() const {
     return divineSet.isComplete();
 }
@@ -103,7 +109,7 @@ std::map<EquipmentPart, Equipment*> Player::getAllEquippedItems() const {
     return allItems;
 }
 
-// 解锁技能
+/** @brief 解锁指定技能（去重）。 */
 void Player::unlockSkill(SkillType type) {
     // 检查是否已经拥有该技能
     for (auto skill : skills) {
@@ -151,7 +157,7 @@ void Player::unlockSkill(SkillType type) {
     }
 }
 
-// 重写升级方法，包含技能解锁逻辑
+/** @brief 覆写升级：属性成长、技能解锁、神剑成长与提示。 */
 bool Player::levelUp() {
     // 只处理属性和技能，不再递归addExp
     bool leveledUp = Attribute::levelUp();
@@ -170,7 +176,7 @@ bool Player::levelUp() {
     return leveledUp;
 }
 
-// 检查并解锁符合等级要求的技能
+/** @brief 按等级/套装检查并解锁技能。 */
 void Player::checkAndUnlockSkills() {
     int currentLevel = getLevel();
     
@@ -195,10 +201,10 @@ void Player::checkAndUnlockSkills() {
     }
 }
 
-// 获取技能列表
+/** @brief 获取技能列表副本。 */
 std::vector<Skill*> Player::getSkills() const { return skills; }
 
-// 获取指定技能
+/** @brief 查找指定类型技能。 */
 Skill* Player::getSkill(SkillType type) const {
     for (auto skill : skills) {
         if (skill->getType() == type) return skill;
@@ -206,7 +212,7 @@ Skill* Player::getSkill(SkillType type) const {
     return nullptr;
 }
 
-// 更新任务进度
+/** @brief 更新任务进度（复制体状态同步）。 */
 void Player::updateTaskProgress(std::string taskID, TaskStatus status) {
     auto it = taskProgress.find(taskID);
     if (it != taskProgress.end()) {
@@ -214,7 +220,7 @@ void Player::updateTaskProgress(std::string taskID, TaskStatus status) {
     }
 }
 
-// 检查任务是否完成
+/** @brief 判断任务是否完成。 */
 bool Player::isTaskCompleted(std::string taskID) const {
     auto it = taskProgress.find(taskID);
     if (it != taskProgress.end()) {
@@ -224,14 +230,17 @@ bool Player::isTaskCompleted(std::string taskID) const {
     return false; // 任务不存在，视为“未完成”
 }
 
+/** @brief 向背包添加物品（按名称聚合）。 */
 void Player::addItem(const Item& item, int quantity) {
     inventory[item.getName()] += quantity;
 }
 
+/** @brief 按名称添加物品（用于简化拾取/读档）。 */
 void Player::addItemByName(const std::string& itemName, int quantity) {
     inventory[itemName] += quantity;
 }
 
+/** @brief 使用物品（计数—1，归零即移除）。 */
 bool Player::useItem(const std::string& itemName) {
     if (inventory.count(itemName) && inventory[itemName] > 0) {
         inventory[itemName]--;
@@ -243,14 +252,20 @@ bool Player::useItem(const std::string& itemName) {
     return false;
 }
 
+/** @brief 获取背包只读引用。 */
 const std::map<std::string, int>& Player::getInventory() const {
     return inventory;
 }
 
+/** @brief 清空背包。 */
 void Player::clearInventory() {
     inventory.clear();
 }
 
+/**
+ * @brief 从背包装备指定装备并触发任务限制校验与单件移除。
+ * @return true 成功穿戴；false 失败或不满足条件。
+ */
 bool Player::equipFromInventory(const std::string& equipmentName) {
     // 检查背包是否有该装备
     if (inventory.count(equipmentName) && inventory[equipmentName] > 0) {
@@ -321,6 +336,9 @@ bool Player::equipFromInventory(const std::string& equipmentName) {
     return false;
 }
 
+/**
+ * @brief 增加经验并处理升级循环，满级友好提示。
+ */
 void Player::addExp(int value) {
     if (isMaxLevel()) {
         // 满级后不再获得经验，友好提示
@@ -336,6 +354,7 @@ void Player::addExp(int value) {
     }
 }
 
+/** @brief 售卖物品并结算金币。 */
 bool Player::sellItem(const std::string& itemName, int quantity) {
     if (!inventory.count(itemName) || inventory[itemName] < quantity) {
         return false; // 物品不足
@@ -354,6 +373,7 @@ bool Player::sellItem(const std::string& itemName, int quantity) {
     return true;
 }
 
+/** @brief 丢弃物品到当前区域。 */
 bool Player::dropItem(const std::string& itemName, int quantity) {
     if (!inventory.count(itemName) || inventory[itemName] < quantity) {
         return false; // 物品不足
@@ -366,6 +386,7 @@ bool Player::dropItem(const std::string& itemName, int quantity) {
     return true;
 }
 
+/** @brief 物品是否允许售卖。 */
 bool Player::canSellItem(const std::string& itemName) const {
     // 商店购买的物品可以售卖
     if (itemName == "生命药水" || itemName == "能量药水" || itemName == "神秘商品") {
@@ -376,6 +397,7 @@ bool Player::canSellItem(const std::string& itemName) const {
     return false;
 }
 
+/** @brief 计算可售物品的单价。 */
 int Player::getItemSellPrice(const std::string& itemName) const {
     // 商店物品按原价50%出售
     if (itemName == "生命药水") return 25;  // 原价50的50%
@@ -385,7 +407,7 @@ int Player::getItemSellPrice(const std::string& itemName) const {
     return 0; // 不可售卖物品
 }
 
-// 新增：临时增益状态管理
+/** @brief 增益：速度提升（覆盖旧增益）。 */
 void Player::addSpeedBoost(int amount, int turns) {
     if (speedBoostTurns > 0) {
         // 如果已有速度增益，先移除旧的效果
@@ -396,6 +418,7 @@ void Player::addSpeedBoost(int amount, int turns) {
     setSpeed(getSpeed() + amount);
 }
 
+/** @brief 增益：防御提升（覆盖旧增益）。 */
 void Player::addDefenseBoost(int amount, int turns) {
     if (defenseBoostTurns > 0) {
         // 如果已有防御增益，先移除旧的效果
@@ -406,6 +429,7 @@ void Player::addDefenseBoost(int amount, int turns) {
     setDEF(getDEF() + amount);
 }
 
+/** @brief 回合结束：衰减增益并在结束时撤回属性。 */
 void Player::updateBuffTurns() {
     // 更新速度增益
     if (speedBoostTurns > 0) {
@@ -428,6 +452,7 @@ void Player::updateBuffTurns() {
     }
 }
 
+/** @brief 获取当前增益状态文本。 */
 std::string Player::getBuffStatus() const {
     std::string status = "";
     if (physicalShieldTurns > 0) {

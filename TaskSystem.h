@@ -1,3 +1,8 @@
+/**
+ * @file TaskSystem.h
+ * @brief 任务系统声明（占位注释）。方法文档用于说明预期行为。
+ */
+
 #pragma once
 #ifndef TASKSYSTEM_H
 #define TASKSYSTEM_H

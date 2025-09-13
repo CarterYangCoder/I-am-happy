@@ -4,29 +4,34 @@
 #include "Equipment.h"
 #include <map>
 
+/**
+ * @class DivineSet
+ * @brief 六誓圣辉套装：管理部件、是否集齐与共鸣效果描述。
+ */
 class DivineSet {
 private:
-    std::map<EquipmentPart, Equipment*> parts;  // 套装部件（部位->装备）
- 
+    std::map<EquipmentPart, Equipment*> parts;
+
 public:
+    /** @brief 构造空套装。 */
     DivineSet();
 
-    // 添加套装部件
+    /** @brief 添加套装部件（覆盖同部位）。 */
     void addPart(Equipment* part);
 
-    // 检查是否集齐所有部件
+    /** @brief 是否集齐六件套。 */
     bool isComplete() const;
 
-    // 获取套装共鸣效果（集齐后触发）
+    /** @brief 集齐后的共鸣效果描述。 */
     std::string getResonanceEffect() const;
 
-    // 获取单个部件的特殊效果
+    /** @brief 获取单部位的特殊效果描述。 */
     std::string getPartEffect(EquipmentPart part) const;
-    
-    // 获取装备指针
+
+    /** @brief 获取指定部位装备指针。 */
     Equipment* getEquipment(EquipmentPart part) const;
-    
-    // 获取所有装备
+
+    /** @brief 获取全部部件映射。 */
     const std::map<EquipmentPart, Equipment*>& getAllParts() const;
 };
 

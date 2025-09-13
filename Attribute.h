@@ -4,30 +4,41 @@
 #include <string>
 #include "GameData.h"
 
-// 新增：最大等级常量
+/**
+ * @file Attribute.h
+ * @brief 角色属性基类：等级/生命/攻击/防御/速度/经验/金币/暴击/蓝量。
+ */
+
+/** @brief 最大等级常量。 */
 const int MAX_LEVEL = 30;
 
+/**
+ * @class Attribute
+ * @brief 可战斗实体的通用属性与成长逻辑。
+ */
 class Attribute {
 protected:
-    std::string name;       // 角色名称
-    int level;              // 等级
-    int hp;                 // 当前生命值
-    int maxHp;              // 最大生命值
-    int atk;                // 攻击力
-    int def;                // 防御力
-    int speed;              // 速度
-    int exp;                // 当前经验值
-    int expToNextLevel;     // 升级所需经验值
-    int gold;               // 金币
-    float critRate;         // 暴击率（0-1之间）
-    int mp;                 // 当前蓝量
-    int maxMp;              // 最大蓝量
+    std::string name;
+    int level;
+    int hp;
+    int maxHp;
+    int atk;
+    int def;
+    int speed;
+    int exp;
+    int expToNextLevel;
+    int gold;
+    float critRate;
+    int mp;
+    int maxMp;
 
 public:
+    /** @brief 构造属性对象。 */
     Attribute(std::string name, int level = 1);
-    virtual ~Attribute(); // 虚析构函数
+    virtual ~Attribute();
 
-    // 属性获取
+    /** @name 访问器 */
+    ///@{
     std::string getName() const;
     int getLevel() const;
     int getHP() const;
@@ -41,9 +52,11 @@ public:
     float getCritRate() const;
     int getMP() const;
     int getMaxMP() const;
-    std::string getExpBar() const; // 新增经验条获取方法
+    std::string getExpBar() const;
+    ///@}
 
-    // 属性修改
+    /** @name 修改器 */
+    ///@{
     void setName(const std::string& Name);
     void setMaxHP(int value);
     void setHP(int value);
@@ -59,12 +72,18 @@ public:
     void setLevel(int value);
     void setMP(int value);
     void setMaxMP(int value);
-    // 等级提升（基于设定：等级+1，属性*110%，经验条*120%）
+    ///@}
+
+    /**
+     * @brief 等级提升：属性成长、经验条调整与回血回蓝。
+     * @return true 本次调用有发生升级
+     */
     virtual bool levelUp();
-    
-    // 新增：检查是否已达到满级
+
+    /** @brief 是否已到达满级。 */
     bool isMaxLevel() const;
 
+    /** @brief 存活判定/受伤/治疗。 */
     bool isAlive() const;
     void takeDamage(int damage);
     void heal(int amount);

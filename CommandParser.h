@@ -6,19 +6,33 @@
 #include <functional>
 #include <map>
 
-// 命令结构体，用于存储解析后的命令和参数
+/**
+ * @struct Command
+ * @brief 命令数据：标准命令与参数列表。
+ */
 struct Command {
     std::string command;
     std::vector<std::string> args;
 };
 
+/**
+ * @class CommandParser
+ * @brief 从标准输入读取与解析命令行。
+ */
 class CommandParser {
 public:
-    // 从输入流读取并解析命令 
+    /**
+     * @brief 从输入流读取一行并解析为命令。
+     * @return 解析结果（若 EOF 则返回 quit）
+     */
     Command getCommand();
 
 private:
-    // 解析字符串输入
+    /**
+     * @brief 将字符串解析为命令与参数。
+     * @param input 一行输入
+     * @return Command 解析结果
+     */
     Command parse(const std::string& input);
 };
 

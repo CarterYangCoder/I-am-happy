@@ -5,7 +5,11 @@
 #include "GameData.h"
 #include "Item.h"
 #include <vector>
- 
+
+/**
+ * @class EvilGeneral
+ * @brief 恶念将军（BOSS 基类），拥有领地与掉落与对话。
+ */
 class EvilGeneral : public CommonEnemy {
 private:
     EvilType evilType;         // 恶念类型
@@ -13,8 +17,16 @@ private:
     std::vector<Item*> drops;  // 掉落物品
 
 public:
+    /**
+     * @brief 构造将军。
+     * @param name 名称
+     * @param type 恶念类型
+     * @param territory 领地名
+     * @param level 等级
+     */
     EvilGeneral(std::string name, EvilType type, std::string territory, int level);
     virtual ~EvilGeneral(); // 虚析构函数声明
+
 	EvilType getEvilType() const { return evilType; }
 	std::string getTerritory() const { return territory; }
 	static std::string getEnemyName(EvilType type) {
@@ -30,11 +42,12 @@ public:
 	}
 	const std::vector<Item*>& getDropItems() const { return drops; }
 
-	// 对话系统
+	/** @brief 战前对话。 */
 	virtual std::string getPreBattleDialogue() const;
+	/** @brief 战败台词（敌方被击败）。 */
 	virtual std::string getDefeatDialogue() const;
+	/** @brief 胜利台词（敌方获胜）。 */
 	virtual std::string getVictoryDialogue() const;
-
 };
 
 

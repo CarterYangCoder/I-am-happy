@@ -1,14 +1,22 @@
+/**
+ * @file game.cpp
+ * @brief 游戏主控实现：构造/初始化、主循环、命令处理与各子系统协作。
+ */
 #include "Game.h"
 #include <memory>
 #include <iostream>
 #include <algorithm>
 #include <windows.h>
 
+/** @brief 工具：判断字符串是否全为数字。 */
 bool is_digits_game(const std::string& str) {
     return !str.empty() && std::all_of(str.begin(), str.end(), ::isdigit);
 }
  
-// Game类的构造函数
+/**
+ * @brief 构造 Game：初始化 UI/地图/任务/商店/存档、命令与物品数据库。
+ * @details 若从存档启动，同步地图与玩家位置。
+ */
 Game::Game(bool loadFromSave, Player* loadedPlayer) :
     player(loadedPlayer ? *loadedPlayer : Player("安特王子")),
     gameMap(),              // 初始化地图
@@ -44,7 +52,10 @@ Game::Game(bool loadFromSave, Player* loadedPlayer) :
     setupCommandAliases();
 }
 
-// 游戏主循环
+/**
+ * @brief 游戏主循环：接收解析命令并分发到处理器。
+ * @details 首次进入时输出欢迎信息/当前位置。
+ */
 void Game::run() {
     if (!startedFromSave) {
         ui.displayMessage("欢迎来到MUD世界, " + player.getName() + "!", UIManager::Color::CYAN);
@@ -85,7 +96,7 @@ void Game::run() {
     }
 }
 
-// 设置命令别名
+/** @brief 设置命令别名。 */
 void Game::setupCommandAliases() {
     commandAliases["h"] = "help"; commandAliases["帮助"] = "help";commandAliases["?"] = "help";commandAliases["？"] = "help";
     commandAliases["st"] = "status"; commandAliases["状态"] = "status";
@@ -119,7 +130,7 @@ void Game::setupCommandAliases() {
     commandAliases["sk"] = "skill";
 }
 
-// 将别名或大小写命令转换为标准命令
+/** @brief 归一化命令为标准键。 */
 std::string Game::getCanonicalCommand(std::string cmd) {
     std::transform(cmd.begin(), cmd.end(), cmd.begin(), ::tolower);
     if (commandAliases.count(cmd)) {
@@ -128,7 +139,7 @@ std::string Game::getCanonicalCommand(std::string cmd) {
     return cmd;
 }
 
-// 注册所有命令及其处理逻辑
+/** @brief 注册命令与处理逻辑。 */
 void Game::registerCommands() {
     commandHandlers["help"] = [this](const auto& args) {
         ui.displayMessage("基础命令: help(h,帮助), status(st,状态), look(l,观察), quit(q,退出)", UIManager::Color::WHITE);

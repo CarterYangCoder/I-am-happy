@@ -1,3 +1,7 @@
+/**
+ * @file DivineSet.cpp
+ * @brief 套装容器：添加/判定/共鸣/查询。
+ */
 #include "DivineSet.h"
 
 DivineSet::DivineSet() {}

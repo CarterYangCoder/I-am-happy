@@ -1,3 +1,8 @@
+/**
+ * @file Map.cpp
+ * @brief 地图实现：场景初始化、显示、移动、敌人管理与自动存档触发。
+ */
+
 #include "Map.h"
 #include "BossWanEshuji.h"
 #include "SaveLoadSystem.h"
@@ -6,12 +11,7 @@
 #include <algorithm>
 #include <cctype>
 
-// 辅助函数：判断字符串是否全为数字
-static bool is_digits_game(const std::string& str) {
-    return !str.empty() && std::all_of(str.begin(), str.end(), ::isdigit);
-}
-
-// 构造函数
+/** @brief 构造地图并完成房间/NPC/BOSS/敌人初始化。 */
 Map::Map() {
     initRooms();
     initNPCs(); 
@@ -20,7 +20,7 @@ Map::Map() {
     currentRoomId = 1; // 初始位置：迷雾森林
 }
 
-// 初始化所有房间
+/** @brief 初始化所有房间与连接。 */
 void Map::initRooms() {
     // 初始区域
     Room forest(1, "迷雾森林", "古老的森林，参天大树遮天蔽日，藤蔓掩盖着路径",
@@ -156,7 +156,7 @@ void Map::initRooms() {
     rooms.insert({ 19, chaos });
 }
 
-// 初始化NPC
+/** @brief 初始化NPC。 */
 void Map::initNPCs() {
     // 铁匠铺的NPC - 杨思睿（任务1：寻黑曜晶尘）
     roomNPCs[2] = std::make_unique<NPC>(
@@ -335,7 +335,7 @@ void Map::initNPCs() {
     );
 }
 
-// 初始化BOSS
+/** @brief 初始化 Boss（含最终 BOSS）。 */
 void Map::initBosses() {
     // 黑曜权枢殿 - 厄休拉
     roomBosses[4] = std::make_unique<EvilGeneral>("厄休拉", EvilType::POWER_HUNGRY, "黑曜权枢殿", 10);
@@ -359,7 +359,7 @@ void Map::initBosses() {
     roomBosses[19] = std::make_unique<BossWanEshuji>();
 }
 
-// 初始化普通敌人
+/** @brief 初始化普通敌人刷新点。 */
 void Map::initEnemies() {
     // 迷雾森林
     roomEnemies[1].push_back(std::make_unique<CommonEnemy>(EnemyType::GOBLIN, 1));
@@ -382,7 +382,7 @@ void Map::initEnemies() {
     roomEnemies[16].push_back(std::make_unique<CommonEnemy>(EnemyType::ZOMBIE, 10));
 }
 
-// 绘制全局地图
+/** @brief 绘制全局地图（ASCII 版）。 */
 void Map::drawGlobalMap() const {
     std::cout << "\033[32m==== 恶念之界地图 ====\033[0m" << std::endl;
     std::cout << std::endl;
@@ -410,7 +410,7 @@ void Map::drawGlobalMap() const {
     std::cout << std::endl;
 }
 
-// 绘制定位地图
+/** @brief 绘制当前位置附近的简图。 */
 void Map::drawLocationMap() const {
     std::cout << "\033[36m当前区域地图:\033[0m" << std::endl;
     auto it = rooms.find(currentRoomId);
@@ -433,17 +433,20 @@ void Map::drawLocationMap() const {
     }
 }
 
-// 显示全局地图
+/** @brief 显示全局地图。 */
 void Map::showGlobalMap() {
     drawGlobalMap();
 }
 
-// 显示定位地图
+/** @brief 显示定位地图。 */
 void Map::showLocationMap() {
     drawLocationMap();
 }
 
-// 移动房间（支持方向文字或数字）- 1=北 2=东北 3=东 4=东南 5=南 6=西南 7=西 8=西北 9=上 0=下
+/**
+ * @brief 解析方向并尝试移动房间（不触发自动存档）。
+ * @return true 切换成功；false 方向无效。
+ */
 bool Map::switchRoom(const std::string& input) {
     if (rooms.find(currentRoomId) == rooms.end()) {
         std::cout << "当前房间不存在！" << std::endl;
@@ -495,6 +498,9 @@ bool Map::switchRoom(const std::string& input) {
     }
 }
 
+/**
+ * @brief 解析方向并移动，同时处理玩家位置同步与重要房间自动存档。
+ */
 bool Map::switchRoom(const std::string& input, Player* player, SaveLoadSystem* saveSystem, TaskSystem* taskSystem) {
     if (rooms.find(currentRoomId) == rooms.end()) {
         std::cout << "当前房间不存在！" << std::endl;
@@ -557,7 +563,7 @@ bool Map::switchRoom(const std::string& input, Player* player, SaveLoadSystem* s
     }
 }
 
-// 显示当前房间信息
+/** @brief 显示当前房间信息与实体提示。 */
 void Map::showCurrentRoom() const {
     auto it = rooms.find(currentRoomId);
     if (it != rooms.end()) {
@@ -581,12 +587,12 @@ void Map::showCurrentRoom() const {
     }
 }
 
-// 显示初始房间信息
+/** @brief 显示初始房间信息。 */
 void Map::showInitialRoom() const {
     showCurrentRoom();
 }
 
-// 快速跳转房间
+/** @brief 直接跳转房间（调试）。 */
 void Map::jumpToRoom(int roomId) {
     if (rooms.find(roomId) != rooms.end()) {
         currentRoomId = roomId;
@@ -596,25 +602,22 @@ void Map::jumpToRoom(int roomId) {
     }
 }
 
-// 获取当前房间ID
+/** @brief 获取/设置当前房间ID。 */
 int Map::getCurrentRoomId() const {
     return currentRoomId;
 }
-
-// 设置当前房间ID
 void Map::setCurrentRoomId(int roomId) {
     if (rooms.find(roomId) != rooms.end()) {
         currentRoomId = roomId;
     }
 }
 
-// 获取当前房间的NPC
+/** @brief 获取当前房间的 NPC/BOSS/最终BOSS/随机敌人。 */
 NPC* Map::getCurrentRoomNPC() const {
     auto it = roomNPCs.find(currentRoomId);
     return (it != roomNPCs.end()) ? it->second.get() : nullptr;
 }
 
-// 获取当前房间的BOSS
 EvilGeneral* Map::getCurrentRoomBoss() const {
     auto it = roomBosses.find(currentRoomId);
     if (it != roomBosses.end()) {
@@ -627,7 +630,6 @@ EvilGeneral* Map::getCurrentRoomBoss() const {
     return nullptr;
 }
 
-// 获取当前房间的万恶枢机
 BossWanEshuji* Map::getCurrentRoomFinalBoss() const {
     if (currentRoomId == 19) {
         auto it = roomBosses.find(currentRoomId);
@@ -638,7 +640,6 @@ BossWanEshuji* Map::getCurrentRoomFinalBoss() const {
     return nullptr;
 }
 
-// 获取当前房间的随机敌人
 CommonEnemy* Map::getRandomEnemy() const {
     auto it = roomEnemies.find(currentRoomId);
     if (it != roomEnemies.end() && !it->second.empty()) {
@@ -650,7 +651,7 @@ CommonEnemy* Map::getRandomEnemy() const {
     return nullptr;
 }
 
-// 移除已击败的敌人
+/** @brief 移除已击败的敌人与 BOSS。 */
 void Map::removeDefeatedEnemy(CommonEnemy* enemy) {
     auto it = roomEnemies.find(currentRoomId);
     if (it != roomEnemies.end()) {
@@ -663,12 +664,11 @@ void Map::removeDefeatedEnemy(CommonEnemy* enemy) {
         }
     }
 }
-
-// 移除已击败的BOSS
 void Map::removeDefeatedBoss() {
     roomBosses.erase(currentRoomId);
 }
 
+/** @brief 查询房间是否仍存在指定类型的存活敌人。 */
 bool Map::hasEnemyTypeInRoom(int roomId, EnemyType type) const {
     auto it = roomEnemies.find(roomId);
     if (it == roomEnemies.end()) return false;
