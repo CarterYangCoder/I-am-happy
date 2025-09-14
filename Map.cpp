@@ -37,7 +37,7 @@ void Map::initRooms() {
     blacksmith.addItem("破枷之冠蓝图");
     rooms.insert({ 2, blacksmith });
 
-    Room rift(3, "裂隙废墟", "泛着幽蓝微光的古代废墟，地面散落着黑曜晶尘",
+    Room rift(3, "裂隙废墟", "泛着幽蓝微光的古代废墟，里面似乎有守护者",
         "击败守卫的蚀骨恶狼后才能收集黑曜晶尘");
     rift.addExit("W", 2, "铁砧铁匠铺");
     rift.addExit("NE", 4, "黑曜权枢殿");
@@ -503,7 +503,6 @@ bool Map::switchRoom(const std::string& input, Player* player, SaveLoadSystem* s
 
     const Room& currentRoom = rooms[currentRoomId];
     const auto& exits = currentRoom.getExits();
-    
     std::string targetDir;
     
     // 检查是否为数字输入 (按UI显示的编号)
@@ -536,8 +535,32 @@ bool Map::switchRoom(const std::string& input, Player* player, SaveLoadSystem* s
 
     auto it = exits.find(targetDir);
     if (it != exits.end()) {
-        currentRoomId = it->second.first;
-        
+        int destRoomId = it->second.first;
+
+        // 新增：前置对话校验 - 未与对应任务NPC对话则禁止前往关键任务房间
+        if (player) {
+            // 任务1：与铁匠(房2)对话后才可去房3（裂隙废墟）
+            if (destRoomId == 3 && !player->hasTalkedToNpc("1")) {
+                std::cout << "你还未与铁匠交谈获得指引，暂时无法前往裂隙废墟（3）。" << std::endl;
+                std::cout << "提示：先在铁砧铁匠铺(2)与杨思睿对话。" << std::endl;
+                return false;
+            }
+            // 任务3：与张焜杰(房7)对话后才可去房8（残垣布道台）
+            if (destRoomId == 8 && !player->hasTalkedToNpc("3")) {
+                std::cout << "你还未与守誓者交谈获得指引，暂时无法前往残垣布道台（8）。" << std::endl;
+                std::cout << "提示：先在残垣断柱(7)与张焜杰对话。" << std::endl;
+                return false;
+            }
+            // 任务4：与钟志炜(房9)对话后才可去房10（城外山脚下）
+            if (destRoomId == 10 && !player->hasTalkedToNpc("4")) {
+                std::cout << "你还未与城主交谈获得指引，暂时无法前往城外山脚下（10）。" << std::endl;
+                std::cout << "提示：先在怜悯之城(9)与钟志炜对话。" << std::endl;
+                return false;
+            }
+        }
+
+        currentRoomId = destRoomId;
+
         // 同步玩家位置
         if (player) {
             player->setCurrentRoomId(currentRoomId);

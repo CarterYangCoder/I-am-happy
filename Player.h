@@ -9,6 +9,7 @@
 #include <vector>
 #include <map> 
 #include <iostream>
+#include <set>  // 新增
 
 class Player : public Attribute {
 private:
@@ -23,6 +24,9 @@ private:
     int speedBoostAmount;                       // 速度增益数值
     int defenseBoostTurns;                      // 防御增益剩余回合数
     int defenseBoostAmount;                     // 防御增益数值
+
+    // 已对话任务记录（与对应NPC进行过对话/触发引导）
+    std::set<std::string> talkedTasks; // 新增
     
 public:
     Player(std::string name = "安特王子");
@@ -86,6 +90,11 @@ public:
     // 主动穿戴装备（通过装备名）
     bool equipFromInventory(const std::string& equipmentName);
     void addExp(int value);
+
+    // 已对话任务记录管理
+    void markTalkedToNpc(const std::string& taskId) { talkedTasks.insert(taskId); } // 新增
+    bool hasTalkedToNpc(const std::string& taskId) const { return talkedTasks.count(taskId) > 0; } // 新增
+    const std::set<std::string>& getTalkedTasks() const { return talkedTasks; } // 新增
 };
 
 #endif // PLAYER_H

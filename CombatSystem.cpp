@@ -13,6 +13,47 @@ bool is_digits(const std::string &str)
     return !str.empty() && std::all_of(str.begin(), str.end(), ::isdigit);
 }
 
+// 新增：进度条与HUD渲染
+std::string CombatSystem::makeBar(int current, int max, int width, const std::string& full, const std::string& empty) {
+    if (max <= 0) max = 1;
+    if (current < 0) current = 0;
+    if (current > max) current = max;
+    int filled = static_cast<int>((current * 1.0 / max) * width + 0.5);
+    if (filled > width) filled = width;
+
+    std::string bar = "[";
+    for (int i = 0; i < filled; ++i) bar += full;
+    for (int i = filled; i < width; ++i) bar += empty;
+    bar.push_back(']');
+    return bar;
+}
+
+void CombatSystem::renderBattleHUD(const Player& player, const Attribute& enemy) {
+    // 顶部边框
+    ui.displayMessage("┏━━━━━━━━━━━━━━ 战斗状态 ━━━━━━━━━━━━━━┓", UIManager::Color::WHITE);
+
+    // 玩家信息
+    std::string pHpBar = makeBar(player.getHP(), player.getMaxHP(), 22);
+    std::string pMpBar = makeBar(player.getMP(), player.getMaxMP(), 22);
+    int pHpPct = (player.getMaxHP() > 0) ? (player.getHP() * 100 / player.getMaxHP()) : 0;
+    int pMpPct = (player.getMaxMP() > 0) ? (player.getMP() * 100 / player.getMaxMP()) : 0;
+
+    ui.displayMessage("︳你 Lv" + std::to_string(player.getLevel()) + "  ｜ Buff: " + player.getBuffStatus(), UIManager::Color::CYAN);
+    ui.displayMessage("︳HP " + std::to_string(player.getHP()) + "/" + std::to_string(player.getMaxHP()) + " " + pHpBar + " " + std::to_string(pHpPct) + "%", UIManager::Color::GREEN);
+    ui.displayMessage("︳MP " + std::to_string(player.getMP()) + "/" + std::to_string(player.getMaxMP()) + " " + pMpBar + " " + std::to_string(pMpPct) + "%", UIManager::Color::BLUE);
+
+    ui.displayMessage("┣──────────────────────────────────────────┫", UIManager::Color::WHITE);
+
+    // 敌人信息（统一当作红条）
+    std::string eHpBar = makeBar(enemy.getHP(), enemy.getMaxHP(), 30);
+    int eHpPct = (enemy.getMaxHP() > 0) ? (enemy.getHP() * 100 / enemy.getMaxHP()) : 0;
+    ui.displayMessage("︳" + enemy.getName() + " Lv" + std::to_string(enemy.getLevel()), UIManager::Color::MAGENTA);
+    ui.displayMessage("︳HP " + std::to_string(enemy.getHP()) + "/" + std::to_string(enemy.getMaxHP()) + " " + eHpBar + " " + std::to_string(eHpPct) + "%", UIManager::Color::RED);
+
+    // 底部边框
+    ui.displayMessage("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛", UIManager::Color::WHITE);
+}
+
 // calculateDamage 和 attemptEscape 函数无需改动
 int CombatSystem::calculateDamage(const Attribute &attacker, const Attribute &defender, int power)
 {
@@ -171,7 +212,7 @@ CombatResult CombatSystem::handleSkillSelection(Player& player, Attribute& targe
     ui.displayMessage("选择技能:", UIManager::Color::CYAN);
     for (size_t i = 0; i < player.getSkills().size(); ++i)
     {
-        int scaled = player.getSkills()[i]->getScaledPower(player.getLevel());
+        int scaled = player.getSkills()[i]->getScaledPower(player); // 改：按AD/AP+等级
         int mpCost = player.getSkills()[i]->getMpCost(player.getLevel());
         ui.displayMessage("[" + std::to_string(i + 1) + "] " + player.getSkills()[i]->getName() +
                           " (威力: " + std::to_string(scaled) + " | MP: " + std::to_string(mpCost) + ")",
@@ -190,7 +231,7 @@ CombatResult CombatSystem::handleSkillSelection(Player& player, Attribute& targe
     else if (skillChoice > 0 && skillChoice <= player.getSkills().size())
     {
         Skill* skill = player.getSkills()[skillChoice - 1];
-        int scaledPower = skill->getScaledPower(player.getLevel());
+        int scaledPower = skill->getScaledPower(player);            // 改：按AD/AP+等级
         int mpCost = skill->getMpCost(player.getLevel());
 
         if (player.getMP() < mpCost) {
@@ -358,8 +399,8 @@ CombatResult CombatSystem::handleEscapeAttempt(Player& player, Enemy& enemy)
 template<typename Enemy>
 CombatResult CombatSystem::handlePlayerAction(Player& player, Enemy& enemy, const std::map<int, std::unique_ptr<Item>>& itemDb)
 {
-    // 移除这里的状态显示，因为已经在上层处理了
-    ui.displayMessage("选择行动: [1]攻击 [2]技能 [3]道具 [4]逃跑 [5]查看状态", UIManager::Color::WHITE);
+    // 美化操作提示栏
+    ui.displayMessage("选择行动: [1]⚔️ 攻击  [2]✨ 技能  [3]🎒 道具  [4]🏃 逃跑  [5]🔎 状态", UIManager::Color::WHITE);
     
     int choice = 0;
     while (!(std::cin >> choice) || choice < 1 || choice > 5)
@@ -419,13 +460,9 @@ CombatResult CombatSystem::startCombat(Player& player, CommonEnemy& enemy, const
     
     while (player.isAlive() && enemy.isAlive())
     {
-        // 显示当前状态
-        ui.displayMessage("你的状态: HP " + std::to_string(player.getHP()) + "/" + std::to_string(player.getMaxHP()) + 
-                         " | MP " + std::to_string(player.getMP()) + "/" + std::to_string(player.getMaxMP()), 
-                         UIManager::Color::GREEN);
-        ui.displayMessage(enemy.getName() + " 的状态: HP " + std::to_string(enemy.getHP()) + "/" + std::to_string(enemy.getMaxHP()), 
-                         UIManager::Color::RED);
-        
+        // 显示美化后的战斗面板（替换原有两行状态）
+        renderBattleHUD(player, enemy);
+
         // 玩家回合
         CombatResult playerResult = playerTurn(player, enemy, itemDb);
         if (playerResult != CombatResult::Continue) {
@@ -438,6 +475,10 @@ CombatResult CombatSystem::startCombat(Player& player, CommonEnemy& enemy, const
             player.addGold(enemy.getGoldReward());
             ui.displayMessage("获得 " + std::to_string(enemy.getExpReward()) + " 经验值和 " + 
                              std::to_string(enemy.getGoldReward()) + " 金币!", UIManager::Color::YELLOW);
+            
+            // 移除：这里不要提示黑曜晶尘显现，避免击败第一只狼时提前误导
+            // （显现提示改到 game.cpp 中，且仅在两只狼都被击败时提示）
+            
             return CombatResult::Victory;
         }
         
@@ -480,12 +521,8 @@ CombatResult CombatSystem::startCombat(Player& player, EvilGeneral& boss, const 
     
     while (player.isAlive() && boss.isAlive())
     {
-        // 显示当前状态
-        ui.displayMessage("你的状态: HP " + std::to_string(player.getHP()) + "/" + std::to_string(player.getMaxHP()) + 
-                         " | MP " + std::to_string(player.getMP()) + "/" + std::to_string(player.getMaxMP()), 
-                         UIManager::Color::GREEN);
-        ui.displayMessage(boss.getName() + " 的状态: HP " + std::to_string(boss.getHP()) + "/" + std::to_string(boss.getMaxHP()), 
-                         UIManager::Color::RED);
+        // 美化后的战斗面板
+        renderBattleHUD(player, boss);
         
         // 玩家回合
         CombatResult playerResult = playerTurn(player, boss, itemDb);
@@ -543,19 +580,14 @@ CombatResult CombatSystem::startCombat(Player& player, BossWanEshuji& boss, cons
     
     while (player.isAlive() && boss.isAlive())
     {
-        // 检查是否需要进入下一阶段
+        // 阶段判定
         if (boss.shouldEnterNextPhase()) {
             boss.enterNextPhase();
             ui.pause();
         }
         
-        // 显示当前状态（包含阶段信息）
-        ui.displayMessage("你的状态: HP " + std::to_string(player.getHP()) + "/" + std::to_string(player.getMaxHP()) + 
-                         " | MP " + std::to_string(player.getMP()) + "/" + std::to_string(player.getMaxMP()), 
-                         UIManager::Color::GREEN);
-        ui.displayMessage(boss.getName() + " (第" + std::to_string(boss.getPhase()) + "阶段) 的状态: HP " + 
-                         std::to_string(boss.getHP()) + "/" + std::to_string(boss.getMaxHP()), 
-                         UIManager::Color::RED);
+        // 美化后的战斗面板（含阶段信息已在顶部标题外展示于名称行）
+        renderBattleHUD(player, boss);
         
         // 玩家回合
         CombatResult playerResult = playerTurn(player, boss, itemDb);

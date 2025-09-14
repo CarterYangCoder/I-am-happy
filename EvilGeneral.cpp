@@ -4,14 +4,14 @@
 
 EvilGeneral::EvilGeneral(std::string name, EvilType type, std::string territory, int level)
     :CommonEnemy (EnemyType::BOSS,level), evilType(type), territory(territory) {
-    setName(name);  // 设置BOSS的名称
-    maxHp = 100 + level * 20; // 增加合理的最大生命值
-    setHP(maxHp);
-    setHP(getMaxHP()); 
-    setATK(10 + level * 0.5);
-    setDEF(8 + level * 0.5);
-    setSpeed(10 + level * 0.5);
-    setCritRate(0.05f + level * 0.01f);
+    setName(name);
+    // 调整：更合理的将军面板（强于小怪，但可用技能打穿）
+    setMaxHP(600 + level * 50);  // HP随等级递增
+    setHP(getMaxHP());
+    setATK(25 + level * 2);      // 攻击力中等偏高
+    setDEF(12 + static_cast<int>(level * 1.5)); // 防御较高但可被技能穿透
+    setSpeed(10 + static_cast<int>(level * 0.5));
+    setCritRate(0.10f + level * 0.005f); // 略随等级提升
 }
 
 // 虚析构函数实现

@@ -4,86 +4,85 @@ CommonEnemy::CommonEnemy(EnemyType type, int level)
     : Attribute(getEnemyName(type), level),  // 调用基类构造函数（传入名称和等级）
     type(type)
 {
-    // 根据敌人类型设置属性（使用基类的 Setter 方法，方法名必须完全匹配
     switch (type) {
-    case EnemyType::CORRUPT_WOLF:  // 蚀骨恶狼
-        setMaxHP(25 * level);      // 最大生命值 = 25 * 等级
-        setHP(getMaxHP());         // 当前生命值初始化为最大值
-        setATK(5 * level);        // 攻击力 = 5 * 等级
-        setDEF(2 * level);         // 防御力 = 2 * 等级
-        setSpeed(10 * level);      // 速度 = 10 * 等级
-        setCritRate(0.02f);         // 暴击率 = 2%（0-1范围）
-        expReward = 60 * level;    // 经验奖励 = 60 * 等级
-        goldReward = 50 * level;   // 金币奖励 = 50 * 等级
+    case EnemyType::CORRUPT_WOLF:  // 蚀骨恶狼（关键早期门怪）
+        setMaxHP(22 * level);      // 调整：更低HP
+        setHP(getMaxHP());
+        setATK(4 * level);         // 调整：更低攻击
+        setDEF(2 * level);
+        setSpeed(6 * level);       // 调整：降低速度
+        setCritRate(0.02f);
+        expReward = 60 * level;    // 调整：奖励适中
+        goldReward = 80 * level;
         break;
 
-    case EnemyType::GOBLIN:  // 哥布林
-        setMaxHP(20 * level);
+    case EnemyType::GOBLIN:  // 哥布林（新手练级点）
+        setMaxHP(18 * level);
         setHP(getMaxHP());
         setATK(4 * level);
         setDEF(2 * level);
         setSpeed(5 * level);
         setCritRate(0.02f);
-        expReward = 70 * level;
-        goldReward = 30 * level;
+        expReward = 45 * level;
+        goldReward = 55 * level;
         break;
 
-    case EnemyType::SLIME:// 史莱姆
-        setMaxHP(25 * level);
+    case EnemyType::SLIME: // 史莱姆（肉一点）
+        setMaxHP(22 * level);
         setHP(getMaxHP());
         setATK(3 * level);
-        setDEF(5 * level);
+        setDEF(4 * level);
         setSpeed(3 * level);
         setCritRate(0.02f);
-        expReward = 70 * level;
-        goldReward = 30 * level;
+        expReward = 40 * level;
+        goldReward = 45 * level;
         break;
 
-    case EnemyType::MINOTAUR:// 牛头人
-        setMaxHP(30 * level);
-        setHP(getMaxHP());
-        setATK(6 * level);
-        setDEF(6 * level);
-        setSpeed(8 * level);
-        setCritRate(0.12f);
-        expReward = 120 * level;
-        goldReward = 100 * level;
-        break;
-
-    case EnemyType::ZOMBIE:// 僵尸
+    case EnemyType::MINOTAUR: // 牛头人（试炼怪，强一点但可打）
         setMaxHP(35 * level);
         setHP(getMaxHP());
-        setATK(8 * level);
-        setDEF(8 * level);
-        setSpeed(4 * level);
-        setCritRate(0.07f);
-        expReward = 120 * level;
-        goldReward = 100 * level;
-        break;
-
-    case EnemyType::SKELETON:// 骷髅
-        setMaxHP(40 * level);
-        setHP(getMaxHP());
-        setATK(10 * level);
-        setDEF(8 * level);
+        setATK(7 * level);
+        setDEF(6 * level);
         setSpeed(6 * level);
-        setCritRate(0.09f);
-        expReward = 140 * level;
+        setCritRate(0.10f);
+        expReward = 110 * level;
         goldReward = 120 * level;
         break;
-    
-    case EnemyType::BOSS:// boss & 恶念将军
-        setMaxHP(50 * level);
+
+    case EnemyType::ZOMBIE: // 僵尸（慢而硬）
+        setMaxHP(42 * level);
         setHP(getMaxHP());
-        setATK(12 * level);
-        setDEF(12 * level);
-        setSpeed(10 * level);
-        setCritRate(0.15f);
-        expReward = 200 * level;
-        goldReward = 200 * level;
+        setATK(7 * level);
+        setDEF(7 * level);
+        setSpeed(3 * level);
+        setCritRate(0.07f);
+        expReward = 120 * level;
+        goldReward = 120 * level;
         break;
 
-    default:  // 神秘敌人
+    case EnemyType::SKELETON: // 骷髅（快一些，输出高）
+        setMaxHP(36 * level);
+        setHP(getMaxHP());
+        setATK(9 * level);
+        setDEF(7 * level);
+        setSpeed(6 * level);
+        setCritRate(0.09f);
+        expReward = 120 * level;
+        goldReward = 130 * level;
+        break;
+    
+    case EnemyType::BOSS: // 通用BOSS奖励（将军/终极BOSS通过子类覆盖面板）
+        setMaxHP(70 * level);
+        setHP(getMaxHP());
+        setATK(11 * level);
+        setDEF(10 * level);
+        setSpeed(8 * level);
+        setCritRate(0.15f);
+        expReward = 200 * level;   // 调整：BOSS奖励上调，不卡级
+        goldReward = 250 * level;
+        break;
+
+    default:
         setMaxHP(10 * level);
         setHP(getMaxHP());
         setATK(1 * level);

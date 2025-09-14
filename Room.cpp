@@ -54,23 +54,35 @@ void Room::showRoomInfo() const {
     std::cout << "提示: " << hint << std::endl;
 
     std::cout << "NPC: ";
-    for (size_t i = 0; i < npcs.size(); ++i) {
-        std::cout << npcs[i];
-        if (i != npcs.size() - 1) std::cout << ", ";
+    if (npcs.empty()) {
+        std::cout << "无";
+    } else {
+        for (size_t i = 0; i < npcs.size(); ++i) {
+            std::cout << npcs[i];
+            if (i != npcs.size() - 1) std::cout << ", ";
+        }
     }
     std::cout << std::endl;
 
     std::cout << "物品: ";
-    for (size_t i = 0; i < items.size(); ++i) {
-        std::cout << items[i];
-        if (i != items.size() - 1) std::cout << ", ";
+    if (items.empty()) {
+        std::cout << "无";
+    } else {
+        for (size_t i = 0; i < items.size(); ++i) {
+            std::cout << items[i];
+            if (i != items.size() - 1) std::cout << ", ";
+        }
     }
     std::cout << std::endl;
 
     std::cout << "出口: ";
-    for (auto it = exits.begin(); it != exits.end(); ++it) {
-        std::cout << it->first << "(" << dirToNumber(it->first) << ")->" << it->second.second;
-        if (std::next(it) != exits.end()) std::cout << ", ";
+    if (exits.empty()) {
+        std::cout << "无";
+    } else {
+        for (auto it = exits.begin(); it != exits.end(); ++it) {
+            std::cout << it->first << "(" << dirToNumber(it->first) << ")->" << it->second.second;
+            if (std::next(it) != exits.end()) std::cout << ", ";
+        }
     }
     std::cout << std::endl;
 }

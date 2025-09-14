@@ -217,6 +217,11 @@ void Game::registerCommands() {
         // 显示对应状态的对话
         npc->showDialogueByStatus(ui, taskStatus, hasMetBefore);
 
+        // 新增：与NPC对话后标记该任务“已对话”，用于移动/拾取前置校验
+        if (!taskId.empty()) {
+            player.markTalkedToNpc(taskId);
+        }
+
         // 在对话后添加任务状态相关的提示
         if (!taskId.empty() && hasMetBefore) {
             if (taskStatus == TaskStatus::COMPLETED) {
@@ -423,6 +428,14 @@ void Game::registerCommands() {
                 case CombatResult::Victory:
                     tasks.updateTaskProgress(&player, "击败" + enemy->getName());
                     gameMap.removeDefeatedEnemy(enemy);
+                    
+                    // 新增：仅当两只狼均被击败且未刷新过时，提示黑曜晶尘显现（房间3）
+                    if (gameMap.getCurrentRoomId() == 3 &&
+                        !gameMap.hasEnemyTypeInRoom(3, EnemyType::CORRUPT_WOLF) &&
+                        !gameMap.isObsidianDustSpawned()) {
+                        ui.displayMessage("蚀骨恶狼的守卫已被清除！地面的黑曜晶尘开始发出幽蓝色的光芒...", UIManager::Color::CYAN);
+                        ui.displayMessage("输入 'pick 黑曜晶尘' 来收集它们。", UIManager::Color::YELLOW);
+                    }
                     
                     // 删除重复的胜利提示，CombatSystem 已经显示了
                     currentState = GameState::Exploring;  // 恢复探索状态
@@ -641,6 +654,103 @@ void Game::registerCommands() {
         if (args.empty()) { ui.displayMessage("用法: pick <物品名>", UIManager::Color::YELLOW); return; }
         int roomId = gameMap.getCurrentRoomId();
         auto& room = gameMap.rooms[roomId];
+
+        // 新增：pick all/全部 一键收集
+        {
+            std::string arg0 = args[0];
+            std::string arg0Lower = arg0;
+            std::transform(arg0Lower.begin(), arg0Lower.end(), arg0Lower.begin(), ::tolower);
+            if (arg0Lower == "all" || arg0 == "全部") {
+
+                // 新增：在裂隙废墟中，若狼已清除且黑曜晶尘尚未显现，则先刷新3份黑曜晶尘
+                if (roomId == 3 &&
+                    !gameMap.hasEnemyTypeInRoom(3, EnemyType::CORRUPT_WOLF) &&
+                    !gameMap.isObsidianDustSpawned()) {
+                    room.addItem("黑曜晶尘");
+                    room.addItem("黑曜晶尘");
+                    room.addItem("黑曜晶尘");
+                    gameMap.setObsidianDustSpawned(true);
+                    // 不额外打断流程，继续进入一键收集
+                }
+
+                if (room.items.empty()) {
+                    ui.displayMessage("当前区域没有可拾取的物品。", UIManager::Color::GRAY);
+                    return;
+                }
+
+                std::map<std::string,int> collected;
+                std::vector<std::string> remaining;
+                bool dustBlocked = false;
+
+                for (const auto& itName : room.items) {
+                    // 黑曜晶尘在裂隙废墟且有狼存活时禁止收集
+                    if (itName == "黑曜晶尘" && roomId == 3 &&
+                        gameMap.hasEnemyTypeInRoom(3, EnemyType::CORRUPT_WOLF)) {
+                        remaining.push_back(itName);
+                        dustBlocked = true;
+                        continue;
+                    }
+                    player.addItemByName(itName, 1);
+                    collected[itName]++;
+                }
+                room.items.swap(remaining);
+
+                if (collected.empty()) {
+                    if (dustBlocked) {
+                        ui.displayMessage("蚀骨恶狼仍在守卫，黑曜晶尘无法收集。", UIManager::Color::RED);
+                    } else {
+                        ui.displayMessage("没有可收集的物品。", UIManager::Color::GRAY);
+                    }
+                    return;
+                }
+
+                // 静默更新任务（仅内部判定，不额外提示）
+                struct ItemTask { std::string item; std::string taskId; int need; };
+                static const std::vector<ItemTask> itemTasks = {
+                    {"黑曜晶尘","1",3}, {"铁誓胸甲","2",1}, {"明识之戒","3",1},
+                    {"怜悯之链","4",1}, {"晨曦披风","5",1}, {"创世战靴","6",1}
+                };
+                for (const auto& kv : collected) {
+                    for (const auto& itg : itemTasks) if (kv.first == itg.item) {
+                        Task* task = tasks.findTask(itg.taskId);
+                        if (task && player.taskProgress.count(itg.taskId) &&
+                            player.taskProgress[itg.taskId].getStatus()==TaskStatus::ACCEPTED) {
+                            task->checkCompletion(&player);
+                            if (task->getStatus()==TaskStatus::COMPLETED) {
+                                player.taskProgress[itg.taskId].setStatus(TaskStatus::COMPLETED);
+                            }
+                        }
+                        break;
+                    }
+                }
+
+                // 提示：收集汇总
+                int total = 0;
+                for (const auto& kv : collected) total += kv.second;
+                ui.displayMessage("已收集物品共 " + std::to_string(total) + " 件：", UIManager::Color::GREEN);
+                for (const auto& kv : collected) {
+                    ui.displayMessage("- " + kv.first + " x" + std::to_string(kv.second), UIManager::Color::WHITE);
+                }
+                if (collected.count("黑曜晶尘")) {
+                    int have = player.getInventory().count("黑曜晶尘") ? player.getInventory().at("黑曜晶尘") : 0;
+                    ui.displayMessage("收集成功：黑曜晶尘 (" + std::to_string(have) + "/3)", UIManager::Color::GREEN);
+                }
+                if (dustBlocked) {
+                    ui.displayMessage("蚀骨恶狼仍在守卫，黑曜晶尘暂不可收集。", UIManager::Color::YELLOW);
+                }
+                ui.displayMessage("背包物品：", UIManager::Color::CYAN);
+                const auto& inv = player.getInventory();
+                if (inv.empty()) {
+                    ui.displayMessage("（空）", UIManager::Color::GRAY);
+                } else {
+                    for (const auto& kv : inv) {
+                        ui.displayMessage("- " + kv.first + " x" + std::to_string(kv.second), UIManager::Color::WHITE);
+                    }
+                }
+                return;
+            }
+        }
+
         std::string rawName = args[0];
         // 统一"黑曜晶尘"与常见误写"黑耀晶尘"
         bool isObsidianDustAlias = (rawName == "黑曜晶尘" || rawName == "黑耀晶尘");
@@ -655,12 +765,12 @@ void Game::registerCommands() {
                 return;
             }
             if (!gameMap.isObsidianDustSpawned()) {
-                bool exists = std::find(room.items.begin(), room.items.end(), "黑曜晶尘") != room.items.end();
-                if (!exists) {
-                    room.addItem("黑曜晶尘"); room.addItem("黑曜晶尘"); room.addItem("黑曜晶尘");
-                    gameMap.setObsidianDustSpawned(true);
-                    ui.displayMessage("你清除了守卫，3份黑曜晶尘显露出来。", UIManager::Color::GREEN);
-                }
+                // 击败蚀骨恶狼后刷新黑曜晶尘（静默刷新，不提示，不展示房间信息）
+                room.addItem("黑曜晶尘"); 
+                room.addItem("黑曜晶尘"); 
+                room.addItem("黑曜晶尘");
+                gameMap.setObsidianDustSpawned(true);
+                // 不再 showCurrentRoom、不再提前 return，继续执行后续拾取流程，使本次 pick 直接拾取1份
             }
         }
         auto& items = room.items;
@@ -668,6 +778,37 @@ void Game::registerCommands() {
         if (it != items.end()) {
             player.addItemByName(itemName, 1);
             items.erase(it);
+
+            // 新增：对“黑曜晶尘”专门精简输出，仅显示收集成功/进度与背包物品列表
+            if (itemName == "黑曜晶尘") {
+                int have = player.getInventory().count("黑曜晶尘") ? player.getInventory().at("黑曜晶尘") : 0;
+
+                // 静默更新任务完成状态（若已接取）
+                Task* t1 = tasks.findTask("1");
+                if (t1 && player.taskProgress.count("1") && player.taskProgress["1"].getStatus() == TaskStatus::ACCEPTED) {
+                    t1->checkCompletion(&player);
+                    if (t1->getStatus() == TaskStatus::COMPLETED) {
+                        player.taskProgress["1"].setStatus(TaskStatus::COMPLETED);
+                    }
+                }
+
+                // 仅提示收集成功与进度
+                lastActionMsg = "收集成功：黑曜晶尘 (" + std::to_string(have) + "/3)";
+                ui.displayMessage(lastActionMsg, UIManager::Color::GREEN);
+
+                // 显示背包物品列表（简洁）
+                ui.displayMessage("背包物品：", UIManager::Color::CYAN);
+                const auto& inv = player.getInventory();
+                if (inv.empty()) {
+                    ui.displayMessage("（空）", UIManager::Color::GRAY);
+                } else {
+                    for (const auto& kv : inv) {
+                        ui.displayMessage("- " + kv.first + " x" + std::to_string(kv.second), UIManager::Color::WHITE);
+                    }
+                }
+                return; // 结束，避免后续通用提示与状态大段显示
+            }
+
             lastActionMsg = "获得物品: " + itemName;
             ui.displayMessage("你拾取了: " + itemName, UIManager::Color::GREEN);
             struct ItemTask { std::string item; std::string taskId; int need; };
@@ -806,7 +947,7 @@ void Game::registerCommands() {
             ui.displayMessage("=== 已解锁技能列表 ===", UIManager::Color::CYAN);
             for (size_t i = 0; i < player.getSkills().size(); ++i) {
                 const auto& skill = player.getSkills()[i];
-                int scaledPower = skill->getScaledPower(player.getLevel());
+                int scaledPower = skill->getScaledPower(player);                // 改：按AD/AP+等级
                 int mpCost = skill->getMpCost(player.getLevel());
                 ui.displayMessage("[" + std::to_string(i + 1) + "] " + skill->getName() + 
                                   " (威力:" + std::to_string(scaledPower) + 

@@ -1,39 +1,38 @@
 #include "BossWanEshuji.h"
+#include <algorithm> // 新增：确保 std::min 可用
 
 BossWanEshuji::BossWanEshuji()
     : EvilGeneral("万恶枢机", EvilType::BOSS, "混沌之心", 30), phase(1) {
-    // 初始化属性（远超普通将军）
-    setMaxHP(3000);
+    // 调整：初始面板更合理（仍为终极BOSS）
+    setMaxHP(1800);
     setHP(maxHp);
-    setATK(200);
-    setDEF(100);
-    setSpeed(30);
-    setCritRate(0.2f);
+    setATK(120);
+    setDEF(60);
+    setSpeed(22);
+    setCritRate(0.20f);
 }
+
 // 进入下一阶段（生命值低于33%进入阶段2，低于10%进入阶段3）
 void BossWanEshuji::enterNextPhase() {
     if (phase >= 3) return;
     phase++;
     std::cout << "万恶枢机进入第 " << phase << " 阶段！" << std::endl;
     
-    // 根据阶段进行不同的强化
+    // 调整：阶段强化幅度略降，避免不可打
     switch (phase) {
         case 2:
-            // 第二阶段：混沌觉醒
-            setATK(getATK() * 1.3);
-            setSpeed(getSpeed() * 1.2);
-            setDEF(getDEF() * 1.15);
-            setCritRate(getCritRate() + 0.1f);
-            std::cout << "万恶枢机的混沌之力觉醒！攻击力大幅提升，获得新的技能！" << std::endl;
+            setATK(static_cast<int>(getATK() * 1.20));
+            setSpeed(static_cast<int>(getSpeed() * 1.15));
+            setDEF(static_cast<int>(getDEF() * 1.12));
+            setCritRate(std::min(0.35f, getCritRate() + 0.08f));
+            std::cout << "万恶枢机的混沌之力觉醒！攻击与速度提升，获得新技能！" << std::endl;
             break;
-            
         case 3:
-            // 第三阶段：终极形态
-            setATK(getATK() * 1.5);
-            setSpeed(getSpeed() * 1.3);
-            setDEF(getDEF() * 1.2);
-            setCritRate(getCritRate() + 0.15f);
-            std::cout << "万恶枢机进入最终形态！力量达到了前所未有的高度！" << std::endl;
+            setATK(static_cast<int>(getATK() * 1.25));
+            setSpeed(static_cast<int>(getSpeed() * 1.15));
+            setDEF(static_cast<int>(getDEF() * 1.12));
+            setCritRate(std::min(0.45f, getCritRate() + 0.10f));
+            std::cout << "万恶枢机进入最终形态！力量攀升至顶点！" << std::endl;
             break;
     }
     phaseTransitionEffect(); // 触发阶段转换特效
@@ -65,18 +64,16 @@ std::string BossWanEshuji::getPhaseAttackDescription() const {
     }
 }
 
-// 阶段转换时的特殊效果
+// 阶段转换时的特殊效果（回血比例略降，更公平）
 void BossWanEshuji::phaseTransitionEffect() {
     switch (phase) {
         case 2:
-            // 第二阶段开始时，回复一些血量
-            heal(getMaxHP() * 0.15);
+            heal(static_cast<int>(getMaxHP() * 0.10)); // 调整：10%
             std::cout << "万恶枢机从混沌之力中汲取力量，恢复了部分生命！" << std::endl;
             break;
         case 3:
-            // 第三阶段开始时，回复更多血量
-            heal(getMaxHP() * 0.20);
-            std::cout << "万恶枢机释放了原始混沌力量，大量恢复了生命！" << std::endl;
+            heal(static_cast<int>(getMaxHP() * 0.15)); // 调整：15%
+            std::cout << "万恶枢机释放原始混沌力量，恢复生命！" << std::endl;
             break;
     }
 }
@@ -98,7 +95,9 @@ bool BossWanEshuji::shouldEnterNextPhase() const {
 std::string BossWanEshuji::getPreBattleDialogue() const {
     return
         "你：\"只要信任、希望与爱尚存，你的规则注定崩坏。\"\n"
-        "万恶枢机：\"欢迎，安特国的王子。\" 它发出六位将军交织的重叠声音，散发着令人窒息的压迫感，\"你以为战胜我的分身便是胜利？他们不过是我播撒的种子，而你——你的愤怒、你的复仇、你的痛苦，正是滋养我的温床。只要人类心存欲望，我的规则便永不消亡！\"";
+        "万恶枢机：\"欢迎，安特国的王子。\" 它发出六位将军交织的重叠声音，散发着令人窒息的压迫感，"
+        "你以为战胜我的分身便是胜利？他们不过是我播撒的种子，而你——你的愤怒、你的复仇、你的痛苦，"
+        "正是滋养我的温床。只要人类心存欲望，我的规则便永不消亡！";
 }
 
 std::string BossWanEshuji::getDefeatDialogue() const {
@@ -126,3 +125,4 @@ std::string BossWanEshuji::getVictoryDialogue() const {
         return "万恶枢机：\"胜利属于混沌...\"";
     }
 }
+

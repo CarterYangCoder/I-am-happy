@@ -3,7 +3,7 @@
 #include "Skills.h"
 
 DivineWeapon::DivineWeapon() 
-    : Equipment("六圣裁恶神剑", EquipmentPart::SWORD, "传说中的神器，随使用者成长", 20, 5, "神圣力量"),
+    : Equipment("六圣裁恶神剑", EquipmentPart::SWORD, "传说中的神器，随使用者成长", 50, 10, "神圣力量"),
       growthLevel(1) {}
 
 DivineWeapon* DivineWeapon::clone() const {
@@ -14,7 +14,7 @@ DivineWeapon* DivineWeapon::clone() const {
 void DivineWeapon::grow(int playerLevel) {
     if (playerLevel > growthLevel) {
         int oldAtk = getAtkBonus();
-        int newAtk = 20 + (playerLevel - 1) * 8; // 基础20攻击力，每级增加8点
+        int newAtk = 50 + (playerLevel - 1) * 10; // 基础50攻击力，每级增加10点
         
         // 更新攻击力加成
         setAtkBonus(newAtk);

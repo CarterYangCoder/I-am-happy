@@ -8,7 +8,7 @@ const float LEVEL_UP_ATTR_MULTIPLIER = 1.15f; // 等级提升属性倍率
 const float LEVEL_UP_EXP_MULTIPLIER = 1.1f; // 等级提升经验条倍率
 
 // 新增：技能默认每级成长系数（线性成长，按解锁等级起算）
-const float DEFAULT_SKILL_GROWTH_PER_LEVEL = 0.6f;
+const float DEFAULT_SKILL_GROWTH_PER_LEVEL = 0.12f; // 调整：从0.6降到0.12
 
 // 新增：技能MP消耗配置（基础值 + 每级成长系数）
 const int   DEFAULT_MP_COST_PHYSICAL = 6;

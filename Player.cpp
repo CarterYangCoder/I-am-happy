@@ -121,26 +121,29 @@ void Player::unlockSkill(SkillType type) {
         std::cout << "\033[35m✨ 解锁了新技能: \033[33m" << newSkill->getName() << "\033[35m ✨\033[0m" << std::endl;
         break;
     case SkillType::GOLDEN_TREE_VOW:
-        newSkill = new Skill(type, "黄金树之誓", "加血增益", 5, SkillTarget::SELF, DamageType::BUFF, 10);
+        newSkill = new Skill(type, "黄金树之誓", "加血增益", 2, SkillTarget::SELF, DamageType::BUFF, 10);
         std::cout << "\033[35m✨ 解锁了新技能: \033[33m" << newSkill->getName() << "\033[35m ✨\033[0m" << std::endl;
         break;
     case SkillType::HOLY_PRISON_JUDGMENT:
-        newSkill = new Skill(type, "圣狱裁决", "魔法伤害技能", 10, SkillTarget::ENEMY, DamageType::MAGICAL, 30);
+        newSkill = new Skill(type, "圣狱裁决", "魔法伤害技能", 3, SkillTarget::ENEMY, DamageType::MAGICAL, 30);
         std::cout << "\033[35m✨ 解锁了新技能: \033[33m" << newSkill->getName() << "\033[35m ✨\033[0m" << std::endl;
         break;
     case SkillType::STAR_ARMOR:
-        newSkill = new Skill(type, "星辰圣铠", "提升防御", 15, SkillTarget::SELF, DamageType::STAR_ARMOR, 15);
+        newSkill = new Skill(type, "星辰圣铠", "提升防御", 4, SkillTarget::SELF, DamageType::STAR_ARMOR, 15);
         std::cout << "\033[35m✨ 解锁了新技能: \033[33m" << newSkill->getName() << "\033[35m ✨\033[0m" << std::endl;
         break;
     case SkillType::HOLY_MARK_SPEED:
-        newSkill = new Skill(type, "圣痕疾影步", "提升速度", 20, SkillTarget::SELF, DamageType::HOLY_MARK_SPEED, 20);
+        newSkill = new Skill(type, "圣痕疾影步", "提升速度", 5, SkillTarget::SELF, DamageType::HOLY_MARK_SPEED, 20);
         std::cout << "\033[35m✨ 解锁了新技能: \033[33m" << newSkill->getName() << "\033[35m ✨\033[0m" << std::endl;
         break;
     case SkillType::ULTIMATE_SLAY:
-        if (hasAllSetParts()) { // 仅在集齐神器时解锁
-            newSkill = new Skill(type, "星闪流河圣龙飞升·神界湮灭斩·最终式", "终极技能，毁灭一切", 50, SkillTarget::ENEMY, DamageType::MAGICAL, 100);
-            std::cout << "\033[35m🌟 集齐六誓圣辉套装！解锁了终极技能: \033[33m" << newSkill->getName() << "\033[35m 🌟\033[0m" << std::endl;
+        // 保留前置：需集齐六誓圣辉救赎套装后才可解锁
+        if (!hasAllSetParts()) {
+            std::cout << "\033[33m尚未集齐六誓圣辉救赎套装，无法解锁终极技能。\033[0m" << std::endl;
+            return;
         }
+        newSkill = new Skill(type, "星闪流河圣龙飞升·神界湮灭斩·最终式", "终极技能，毁灭一切", 6, SkillTarget::ENEMY, DamageType::MAGICAL, 100);
+        std::cout << "\033[35m🌟 解锁了终极技能: \033[33m" << (newSkill ? newSkill->getName() : "终极技能") << "\033[35m 🌟\033[0m" << std::endl;
         break;
     default: 
         break;
@@ -173,24 +176,23 @@ bool Player::levelUp() {
 // 检查并解锁符合等级要求的技能
 void Player::checkAndUnlockSkills() {
     int currentLevel = getLevel();
-    
-    // 根据等级解锁技能
-    if (currentLevel >= 2 && !getSkill(SkillType::HOLY_RIFT_SLASH)) {
+    // 1~6级依次解锁六个技能
+    if (currentLevel >= 1 && !getSkill(SkillType::HOLY_RIFT_SLASH)) {
         unlockSkill(SkillType::HOLY_RIFT_SLASH);
     }
-    if (currentLevel >= 3 && !getSkill(SkillType::GOLDEN_TREE_VOW)) {
+    if (currentLevel >= 2 && !getSkill(SkillType::GOLDEN_TREE_VOW)) {
         unlockSkill(SkillType::GOLDEN_TREE_VOW);
     }
-    if (currentLevel >= 5 && !getSkill(SkillType::HOLY_PRISON_JUDGMENT)) {
+    if (currentLevel >= 3 && !getSkill(SkillType::HOLY_PRISON_JUDGMENT)) {
         unlockSkill(SkillType::HOLY_PRISON_JUDGMENT);
     }
-    if (currentLevel >= 8 && !getSkill(SkillType::STAR_ARMOR)) {
+    if (currentLevel >= 4 && !getSkill(SkillType::STAR_ARMOR)) {
         unlockSkill(SkillType::STAR_ARMOR);
     }
-    if (currentLevel >= 10 && !getSkill(SkillType::HOLY_MARK_SPEED)) {
+    if (currentLevel >= 5 && !getSkill(SkillType::HOLY_MARK_SPEED)) {
         unlockSkill(SkillType::HOLY_MARK_SPEED);
     }
-    if (currentLevel >= 15 && hasAllSetParts() && !getSkill(SkillType::ULTIMATE_SLAY)) {
+    if (currentLevel >= 6 && !getSkill(SkillType::ULTIMATE_SLAY)) {
         unlockSkill(SkillType::ULTIMATE_SLAY);
     }
 }
@@ -441,3 +443,5 @@ std::string Player::getBuffStatus() const {
     }
     return status.empty() ? "无" : status;
 }
+
+// 已对话任务集合的接口已在头文件内联实现

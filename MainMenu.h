@@ -3,8 +3,8 @@
 
 #include "UIManager.h"
 #include "SaveLoadSystem.h"
-#include "TaskSystem.h"
 #include "Player.h"
+#include "TaskSystem.h"
 
 enum class MenuChoice {
     START_GAME = 1,
@@ -17,12 +17,15 @@ class MainMenu {
 private:
     UIManager ui;
     
+    void initializeConsole() const;
+    void clearScreen() const;
+    bool checkColorSupport() const;
     void displayLogo() const;
     void displayMenuOptions() const;
     MenuChoice getPlayerChoice() const;
     void showHelp() const;
     bool handleLoadGame(Player& player, TaskSystem& tasks) const;
-    
+
 public:
     MainMenu();
     MenuChoice run(Player& player, TaskSystem& tasks);

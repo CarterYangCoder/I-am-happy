@@ -41,6 +41,10 @@ private:
     
     bool attemptEscape(const Player& player, const CommonEnemy& enemy);
     int calculateDamage(const Attribute& attacker, const Attribute& defender, int power = 0);
+
+    // 新增：战斗HUD渲染（使用UTF-8字符串，避免char多字符常量告警）
+    std::string makeBar(int current, int max, int width, const std::string& full = u8"█", const std::string& empty = u8"░");
+    void renderBattleHUD(const Player& player, const Attribute& enemy);
 };
 
 #endif // COMBATSYSTEM_H

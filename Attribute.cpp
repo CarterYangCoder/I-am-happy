@@ -4,16 +4,20 @@
 #include <ctime>
 
 // 小幅度固定加成（在原倍率基础上再叠加）
-static constexpr int LEVEL_UP_FLAT_HP    = 15;   // 每级额外生命
-static constexpr int LEVEL_UP_FLAT_MP    = 6;    // 每级额外蓝量
-static constexpr int LEVEL_UP_FLAT_ATK   = 3;    // 每级额外攻击
-static constexpr int LEVEL_UP_FLAT_DEF   = 2;    // 每级额外防御
-// 速度不直接每级+1，改为每2级+1，避免后期过快
-static constexpr int LEVEL_UP_SPEED_STEP = 2;    // 每满2级额外+1速度
+static constexpr int LEVEL_UP_FLAT_HP    = 12;   // 调整：每级额外生命 12
+static constexpr int LEVEL_UP_FLAT_MP    = 5;    // 调整：每级额外蓝量 5
+static constexpr int LEVEL_UP_FLAT_ATK   = 3;    // 保持：每级额外攻击 3
+static constexpr int LEVEL_UP_FLAT_DEF   = 2;    // 保持：每级额外防御 2
+// 速度：每2级+1，避免后期过快
+static constexpr int LEVEL_UP_SPEED_STEP = 2;
 
 Attribute::Attribute(std::string name, int level)
-    : name(name), level(level), hp(100), maxHp(100), mp(50), maxMp(50), atk(10), def(5), speed(5),
-    exp(0), expToNextLevel(100), gold(0), critRate(0.05f) {
+    : name(name), level(level),
+      hp(120), maxHp(120),            // 调整：初始更耐打
+      mp(60), maxMp(60),              // 调整：初始蓝量更稳
+      atk(12), def(6), speed(6),      // 调整：起步平衡
+      exp(0), expToNextLevel(80),     // 调整：前期升级更顺畅（80）
+      gold(0), critRate(0.05f) {
     // 初始化随机数种子（用于暴击判定）
     srand(time(0));
 }
@@ -85,10 +89,10 @@ bool Attribute::levelUp() {
         // 基础属性倍率成长 + 固定加成
         maxHp = static_cast<int>(maxHp * LEVEL_UP_ATTR_MULTIPLIER) + LEVEL_UP_FLAT_HP;
         maxMp = static_cast<int>(maxMp * LEVEL_UP_ATTR_MULTIPLIER) + LEVEL_UP_FLAT_MP;
-        atk = static_cast<int>(atk * LEVEL_UP_ATTR_MULTIPLIER) + LEVEL_UP_FLAT_ATK;
-        def = static_cast<int>(def * LEVEL_UP_ATTR_MULTIPLIER) + LEVEL_UP_FLAT_DEF;
+        atk   = static_cast<int>(atk   * LEVEL_UP_ATTR_MULTIPLIER) + LEVEL_UP_FLAT_ATK;
+        def   = static_cast<int>(def   * LEVEL_UP_ATTR_MULTIPLIER) + LEVEL_UP_FLAT_DEF;
         
-        // 速度：倍率后每满2级额外+1（例如2,4,6...）
+        // 速度成长
         speed = static_cast<int>(speed * LEVEL_UP_ATTR_MULTIPLIER);
         if (level % LEVEL_UP_SPEED_STEP == 0) speed += 1;
         if (speed < 1) speed = 1;
