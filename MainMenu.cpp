@@ -111,7 +111,7 @@ void MainMenu::displayLogo() const {
             std::cout << "\033[38;5;33m"; // 深蓝色
         }
         std::cout << "      ╔══════════════════════════════════════════════════════════════════════════════╗" << std::endl;
-        std::cout << "      ║                          ⚔️  MUD 文字冒险游戏 v1.0  ⚔️                         ║" << std::endl;
+        std::cout << "      ║                          ⚔️  MUD 文字冒险游戏 v1.0  ⚔️                       ║" << std::endl;
         std::cout << "      ╚══════════════════════════════════════════════════════════════════════════════╝" << std::endl;
         if (useColors) {
             std::cout << "\033[0m";
@@ -159,7 +159,7 @@ void MainMenu::displayMenuOptions() const {
         if (useColors) {
             std::cout << "\033[38;5;46m"; // 绿色
         }
-        std::cout << "                    │  [1] ⚔️  开始新的冒险                      │" << std::endl;
+        std::cout << "                    │  [1] ⚔️  开始新的冒险                       │" << std::endl;
         
         if (useColors) {
             std::cout << "\033[38;5;51m"; // 青色
@@ -281,8 +281,10 @@ void MainMenu::showHelp() const {
         
         ui.displayMessage("🎒 物品管理:", UIManager::Color::CYAN);
         ui.displayMessage("• pick <物品名> - 拾取物品", UIManager::Color::WHITE);
+        ui.displayMessage("• pick all 或 全部 - 一键收集当前区域全部可拾取物品", UIManager::Color::WHITE);
         ui.displayMessage("• use <物品名> - 使用道具", UIManager::Color::WHITE);
         ui.displayMessage("• wear <装备名> - 穿戴装备", UIManager::Color::WHITE);
+        ui.displayMessage("• unwear <装备名>（卸下/脱下）- 卸下已穿戴装备", UIManager::Color::WHITE); // 新增
         ui.displayMessage("• shop - 进入商店购买道具", UIManager::Color::WHITE);
         std::cout << std::endl;
         

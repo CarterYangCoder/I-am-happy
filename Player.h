@@ -89,6 +89,7 @@ public:
 
     // 主动穿戴装备（通过装备名）
     bool equipFromInventory(const std::string& equipmentName);
+    bool unequip(const std::string& equipmentName); // 新增：卸下装备
     void addExp(int value);
 
     // 已对话任务记录管理

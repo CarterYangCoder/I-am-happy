@@ -117,6 +117,12 @@ void Game::setupCommandAliases() {
     commandAliases["skill"] = "skill";
     commandAliases["技能"] = "skill";
     commandAliases["sk"] = "skill";
+    // 新增：卸下装备命令别名
+    commandAliases["unwear"] = "unwear";
+    commandAliases["卸下"] = "unwear";
+    // 可选别名
+    commandAliases["takeoff"] = "unwear";
+    commandAliases["脱下"] = "unwear";
 }
 
 // 将别名或大小写命令转换为标准命令
@@ -140,8 +146,10 @@ void Game::registerCommands() {
         ui.displayMessage("任务命令: task(t,任务) [list/accept <ID>/submit <ID>]", UIManager::Color::YELLOW);
         ui.displayMessage("物品命令: use <物品名> - 使用道具，如 use 生命药水", UIManager::Color::GREEN);
         ui.displayMessage("  pick <物品名>(拾取) - 拾取物品, sell <物品名>(售卖) - 售卖物品", UIManager::Color::GREEN);
+        ui.displayMessage("  pick all(全部) - 一键收集当前区域全部可拾取物品", UIManager::Color::GREEN);
         ui.displayMessage("  drop <物品名>(丢弃) - 丢弃物品到当前区域", UIManager::Color::GREEN);
         ui.displayMessage("装备命令: wear <装备名> - 穿戴装备，如 wear 铁誓胸甲", UIManager::Color::GREEN);
+        ui.displayMessage("卸下命令: unwear(卸下, 脱下) <装备名> - 卸下已穿戴装备", UIManager::Color::GREEN); // 新增
         ui.displayMessage("技能命令: skill(sk,技能) [技能名] - 查看技能列表或详细信息", UIManager::Color::BLUE);
         ui.displayMessage("商店命令: shop(sh,商店), buy(b,购买) <ID>[*数量], leave(le,离开)", UIManager::Color::GREEN);
         ui.displayMessage("存档命令: save(sa,存档), load(lo,读档)", UIManager::Color::MAGENTA);
@@ -325,6 +333,7 @@ void Game::registerCommands() {
                     player.setExp(backup_exp);
                     player.setGold(backup_gold);
                     player.inventory = backup_inventory;
+                    player.setMP(player.getMaxMP()); // 新增：重试前蓝量回满
                     current_boss = original_boss;
                     continue;
                     
@@ -385,6 +394,7 @@ void Game::registerCommands() {
                     player.setExp(backup_exp);
                     player.setGold(backup_gold);
                     player.inventory = backup_inventory;
+                    player.setMP(player.getMaxMP()); // 新增：重试前蓝量回满
                     current_boss = original_boss;
                     continue; // 继续循环，重新开始战斗
                     
@@ -458,6 +468,7 @@ void Game::registerCommands() {
                     player.setExp(backup_exp);
                     player.setGold(backup_gold);
                     player.inventory = backup_inventory;
+                    player.setMP(player.getMaxMP()); // 新增：重试前蓝量回满
                     current_enemy = original_enemy;
                     break;
 
@@ -606,10 +617,10 @@ void Game::registerCommands() {
             lastActionMsg = "使用了生命药水，回复了 " + std::to_string(healAmount) + " 点生命值。";
             ui.displayMessage(lastActionMsg, UIManager::Color::GREEN);
         } else if (itemName == "能量药水") {
-            int mpRecoverAmount = player.getMP() * 0.5;
+            int mpRecoverAmount = static_cast<int>(player.getMaxMP() * 0.5); // 改：50%最大蓝量
             player.setMP(player.getMP() + mpRecoverAmount);
             player.useItem(itemName);
-            lastActionMsg = "使用了能量药水，回复了 " + std::to_string(mpRecoverAmount) + " 点蓝量。";
+            lastActionMsg = "使用了能量药水，回复了 " + std::to_string(mpRecoverAmount) + " 点蓝量（50%最大蓝量）。";
             ui.displayMessage(lastActionMsg, UIManager::Color::CYAN);
         } else if (itemName == "神秘商品") {
             std::string result = itemDb[3]->use();
@@ -620,6 +631,25 @@ void Game::registerCommands() {
             if (player.equipFromInventory(itemName)) {
                 lastActionMsg = "成功穿戴装备: " + itemName;
                 ui.displayMessage(lastActionMsg, UIManager::Color::GREEN);
+
+                // 新增：明识之戒 - 通过 use 佩戴后也要检测任务3完成（与 wear 分支保持一致）
+                if (itemName == "明识之戒" || itemName == "真理誓约・明识之戒") {
+                    Task* t3 = tasks.findTask("3");
+                    if (t3 && player.taskProgress.count("3")) {
+                        auto st = player.taskProgress["3"].getStatus();
+                        if (st == TaskStatus::ACCEPTED) {
+                            t3->checkCompletion(&player);
+                            if (t3->getStatus() == TaskStatus::COMPLETED) {
+                                player.taskProgress["3"].setStatus(TaskStatus::COMPLETED);
+                                ui.displayMessage("已佩戴明识之戒，任务3已完成。输入: task submit 3 提交奖励。", UIManager::Color::GREEN);
+                            } else {
+                                // 保险：若任务系统未置完成，则直接标记为完成
+                                player.taskProgress["3"].setStatus(TaskStatus::COMPLETED);
+                                ui.displayMessage("已佩戴明识之戒，任务3已完成。输入: task submit 3 提交奖励。", UIManager::Color::GREEN);
+                            }
+                        }
+                    }
+                }
             } else {
                 lastActionMsg = "该物品无法直接使用。";
                 ui.displayMessage(lastActionMsg, UIManager::Color::YELLOW);
@@ -637,8 +667,40 @@ void Game::registerCommands() {
         if (player.equipFromInventory(equipName)) {
             lastActionMsg = "成功穿戴装备: " + equipName;
             ui.displayMessage(lastActionMsg, UIManager::Color::GREEN);
+
+            // 新增：明识之戒 - 佩戴后再检测任务3完成
+            if (equipName == "明识之戒" || equipName == "真理誓约・明识之戒") {
+                Task* t3 = tasks.findTask("3");
+                if (t3 && player.taskProgress.count("3")) {
+                    auto st = player.taskProgress["3"].getStatus();
+                    if (st == TaskStatus::ACCEPTED) {
+                        t3->checkCompletion(&player);
+                        if (t3->getStatus() == TaskStatus::COMPLETED) {
+                            player.taskProgress["3"].setStatus(TaskStatus::COMPLETED);
+                            ui.displayMessage("已佩戴明识之戒，任务3已完成。输入: task submit 3 提交奖励。", UIManager::Color::GREEN);
+                        }
+                    }
+                }
+            }
         } else {
-            lastActionMsg = "穿戴失败，背包中没有该装备或不是装备类型。";
+            lastActionMsg = "穿戴失败，背包中没有该装备或不满足条件。";
+            ui.displayMessage(lastActionMsg, UIManager::Color::RED);
+        }
+        ui.displayPlayerStatus(player, lastActionMsg);
+    };
+
+    // 新增：卸下装备
+    commandHandlers["unwear"] = [this](const auto& args) {
+        if (args.empty()) {
+            ui.displayMessage("用法: unwear <装备名>（别名：卸下/脱下）", UIManager::Color::YELLOW);
+            return;
+        }
+        std::string equipName = args[0];
+        if (player.unequip(equipName)) {
+            lastActionMsg = "已卸下装备: " + equipName;
+            ui.displayMessage(lastActionMsg, UIManager::Color::GREEN);
+        } else {
+            lastActionMsg = "卸下失败，未找到已穿戴的该装备。";
             ui.displayMessage(lastActionMsg, UIManager::Color::RED);
         }
         ui.displayPlayerStatus(player, lastActionMsg);
@@ -655,7 +717,38 @@ void Game::registerCommands() {
         int roomId = gameMap.getCurrentRoomId();
         auto& room = gameMap.rooms[roomId];
 
-        // 新增：pick all/全部 一键收集
+        // 新增：任务物品拾取权限校验（首次做任务需要先对话并接任务）
+        auto canPickTaskItem = [&](const std::string& itemName, std::string& outTip)->bool {
+            struct Gate { const char* item; const char* taskId; const char* npc; const char* where; };
+            static const Gate gates[] = {
+                {"黑曜晶尘","1","杨思睿","铁砧铁匠铺(2)"},
+                {"铁誓胸甲","2","晋津津","背契之坛(5)"},
+                {"明识之戒","3","张焜杰","残垣断柱(7)"},
+                {"怜悯之链","4","钟志炜","怜悯之城(9)"},
+                {"晨曦披风","5","王浠珃","塔底迷宫(14)"},
+                {"创世战靴","6","周洋迅","旧图书馆废墟(17)"}
+            };
+            const Gate* g = nullptr;
+            for (auto& gg : gates) if (itemName == gg.item) { g = &gg; break; }
+            if (!g) return true; // 非任务物品不拦截
+
+            bool talked = player.hasTalkedToNpc(g->taskId);
+            bool acceptedOrMore = false;
+            if (player.taskProgress.count(g->taskId)) {
+                auto st = player.taskProgress.at(g->taskId).getStatus();
+                acceptedOrMore = (st != TaskStatus::UNACCEPTED);
+            }
+            // 首次做任务：未对话或未接取，禁止拾取并提示
+            if (!talked || !acceptedOrMore) {
+                outTip = "首次进行任务，请先在" + std::string(g->where) + "与" + std::string(g->npc) +
+                         "对话，并输入: task accept " + std::string(g->taskId) +
+                         " 接取任务后再拾取 " + itemName + "。";
+                return false;
+            }
+            return true;
+        };
+
+        // 新增：pick all/全部 一键收集先校验任务前置
         {
             std::string arg0 = args[0];
             std::string arg0Lower = arg0;
@@ -670,7 +763,6 @@ void Game::registerCommands() {
                     room.addItem("黑曜晶尘");
                     room.addItem("黑曜晶尘");
                     gameMap.setObsidianDustSpawned(true);
-                    // 不额外打断流程，继续进入一键收集
                 }
 
                 if (room.items.empty()) {
@@ -681,9 +773,17 @@ void Game::registerCommands() {
                 std::map<std::string,int> collected;
                 std::vector<std::string> remaining;
                 bool dustBlocked = false;
-
+                std::vector<std::string> taskBlockedTips;
                 for (const auto& itName : room.items) {
-                    // 黑曜晶尘在裂隙废墟且有狼存活时禁止收集
+                    // 新增：任务首做前置校验
+                    std::string tip;
+                    if (!canPickTaskItem(itName, tip)) {
+                        remaining.push_back(itName);
+                        if (!tip.empty()) taskBlockedTips.push_back(tip);
+                        continue;
+                    }
+
+                    // 黑曜晶尘在裂隙废墟且有狼存活时禁止收集（保持原逻辑）
                     if (itName == "黑曜晶尘" && roomId == 3 &&
                         gameMap.hasEnemyTypeInRoom(3, EnemyType::CORRUPT_WOLF)) {
                         remaining.push_back(itName);
@@ -698,8 +798,13 @@ void Game::registerCommands() {
                 if (collected.empty()) {
                     if (dustBlocked) {
                         ui.displayMessage("蚀骨恶狼仍在守卫，黑曜晶尘无法收集。", UIManager::Color::RED);
-                    } else {
-                        ui.displayMessage("没有可收集的物品。", UIManager::Color::GRAY);
+                    }
+                    // 新增：输出任务前置阻止提示
+                    if (!taskBlockedTips.empty()) {
+                        // 去重后输出
+                        std::sort(taskBlockedTips.begin(), taskBlockedTips.end());
+                        taskBlockedTips.erase(std::unique(taskBlockedTips.begin(), taskBlockedTips.end()), taskBlockedTips.end());
+                        for (auto& msg : taskBlockedTips) ui.displayMessage(msg, UIManager::Color::YELLOW);
                     }
                     return;
                 }
@@ -712,6 +817,8 @@ void Game::registerCommands() {
                 };
                 for (const auto& kv : collected) {
                     for (const auto& itg : itemTasks) if (kv.first == itg.item) {
+                        // 变更：任务3不在拾取阶段判定完成，需佩戴后检测
+                        if (itg.taskId == "3") break;
                         Task* task = tasks.findTask(itg.taskId);
                         if (task && player.taskProgress.count(itg.taskId) &&
                             player.taskProgress[itg.taskId].getStatus()==TaskStatus::ACCEPTED) {
@@ -724,7 +831,6 @@ void Game::registerCommands() {
                     }
                 }
 
-                // 提示：收集汇总
                 int total = 0;
                 for (const auto& kv : collected) total += kv.second;
                 ui.displayMessage("已收集物品共 " + std::to_string(total) + " 件：", UIManager::Color::GREEN);
@@ -737,6 +843,13 @@ void Game::registerCommands() {
                 }
                 if (dustBlocked) {
                     ui.displayMessage("蚀骨恶狼仍在守卫，黑曜晶尘暂不可收集。", UIManager::Color::YELLOW);
+                }
+                // 新增：输出任务前置阻止提示（如果有被拦截的任务物品）
+                {
+                    // 去重后输出
+                    std::sort(taskBlockedTips.begin(), taskBlockedTips.end());
+                    taskBlockedTips.erase(std::unique(taskBlockedTips.begin(), taskBlockedTips.end()), taskBlockedTips.end());
+                    for (auto& msg : taskBlockedTips) ui.displayMessage(msg, UIManager::Color::YELLOW);
                 }
                 ui.displayMessage("背包物品：", UIManager::Color::CYAN);
                 const auto& inv = player.getInventory();
@@ -758,7 +871,17 @@ void Game::registerCommands() {
         if (isObsidianDustAlias && rawName != itemName) {
             ui.displayMessage("已自动识别为: 黑曜晶尘", UIManager::Color::GRAY);
         }
-        // 特殊逻辑：黑曜晶尘需要先击败裂隙废墟(3)的蚀骨恶狼
+
+        // 新增：单件拾取 — 任务首做前置校验（优先级高于其他判定）
+        {
+            std::string tip;
+            if (!canPickTaskItem(itemName, tip)) {
+                ui.displayMessage(tip, UIManager::Color::YELLOW);
+                return;
+            }
+        }
+
+        // 特殊逻辑：黑曜晶尘需要先击败裂隙废墟(3)的蚀骨恶狼（保持原逻辑）
         if (itemName == "黑曜晶尘" && roomId == 3) {
             if (gameMap.hasEnemyTypeInRoom(3, EnemyType::CORRUPT_WOLF)) {
                 ui.displayMessage("蚀骨恶狼仍在守卫，你无法收集黑曜晶尘。先使用 fight 击败它们。", UIManager::Color::RED);
@@ -770,9 +893,9 @@ void Game::registerCommands() {
                 room.addItem("黑曜晶尘"); 
                 room.addItem("黑曜晶尘");
                 gameMap.setObsidianDustSpawned(true);
-                // 不再 showCurrentRoom、不再提前 return，继续执行后续拾取流程，使本次 pick 直接拾取1份
             }
         }
+
         auto& items = room.items;
         auto it = std::find(items.begin(), items.end(), itemName);
         if (it != items.end()) {
@@ -816,6 +939,9 @@ void Game::registerCommands() {
                 {"黑曜晶尘","1",3}, {"铁誓胸甲","2",1}, {"明识之戒","3",1}, {"怜悯之链","4",1}, {"晨曦披风","5",1}, {"创世战靴","6",1}
             };
             for (const auto& itg : itemTasks) if (itemName == itg.item) {
+                // 变更：任务3不在拾取阶段完成，需佩戴后检测
+                if (itg.taskId == "3") break;
+
                 Task* task = tasks.findTask(itg.taskId);
                 bool accepted = player.taskProgress.count(itg.taskId) && (player.taskProgress[itg.taskId].getStatus()==TaskStatus::ACCEPTED);
                 int have = player.getInventory().count(itg.item)?player.getInventory().at(itg.item):0;

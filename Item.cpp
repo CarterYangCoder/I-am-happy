@@ -10,12 +10,12 @@ int Item::getPrice() const { return price; }
 int Item::getId() const { return id; } 
 
 // 具体物品子类实现
-HealthPotion::HealthPotion() :Item(1,"生命药水", ItemType::HEALTH_POTION, "回复50%生命值", 50) {}
-std::string HealthPotion::use() { return "回复50%生命值"; }
+HealthPotion::HealthPotion() :Item(1,"生命药水", ItemType::HEALTH_POTION, "回复50%最大生命值", 50) {} // 改文案
+std::string HealthPotion::use() { return "回复50%最大生命值"; } // 改文案
 int HealthPotion::getHealAmount() const { return 50; } // 这里返回百分比，实际使用时需要根据玩家最大生命值计算
 
-EnergyPotion::EnergyPotion() : Item(2,"能量药水", ItemType::ENERGY_POTION, "回复50%当前蓝量", 100) {}
-std::string EnergyPotion::use() { return "回复50%当前蓝量"; }
+EnergyPotion::EnergyPotion() : Item(2,"能量药水", ItemType::ENERGY_POTION, "回复50%最大蓝量", 100) {} // 改文案
+std::string EnergyPotion::use() { return "回复50%最大蓝量"; } // 改文案
 bool EnergyPotion::grantsExtraAction() const { return false; } // 不再提供额外行动
 
 MysteriousItem::MysteriousItem() : Item(3,"神秘商品", ItemType::MISC, "看起来很神秘，不知道是什么", 10) {}

@@ -28,6 +28,9 @@ public:
     
     // 获取所有装备
     const std::map<EquipmentPart, Equipment*>& getAllParts() const;
+
+    // 新增：从套装中取出部件（调用方负责delete）
+    Equipment* takePart(EquipmentPart part);
 };
 
 #endif // DIVINESET_H

@@ -12,8 +12,8 @@ CommonEnemy::CommonEnemy(EnemyType type, int level)
         setDEF(2 * level);
         setSpeed(6 * level);       // 调整：降低速度
         setCritRate(0.02f);
-        expReward = 60 * level;    // 调整：奖励适中
-        goldReward = 80 * level;
+        expReward = 35 * level;    // 调整：降低奖励，避免早期暴涨
+        goldReward = 55 * level;
         break;
 
     case EnemyType::GOBLIN:  // 哥布林（新手练级点）
@@ -23,8 +23,8 @@ CommonEnemy::CommonEnemy(EnemyType type, int level)
         setDEF(2 * level);
         setSpeed(5 * level);
         setCritRate(0.02f);
-        expReward = 45 * level;
-        goldReward = 55 * level;
+        expReward = 28 * level;
+        goldReward = 40 * level;
         break;
 
     case EnemyType::SLIME: // 史莱姆（肉一点）
@@ -34,8 +34,8 @@ CommonEnemy::CommonEnemy(EnemyType type, int level)
         setDEF(4 * level);
         setSpeed(3 * level);
         setCritRate(0.02f);
-        expReward = 40 * level;
-        goldReward = 45 * level;
+        expReward = 25 * level;
+        goldReward = 35 * level;
         break;
 
     case EnemyType::MINOTAUR: // 牛头人（试炼怪，强一点但可打）
@@ -45,8 +45,8 @@ CommonEnemy::CommonEnemy(EnemyType type, int level)
         setDEF(6 * level);
         setSpeed(6 * level);
         setCritRate(0.10f);
-        expReward = 110 * level;
-        goldReward = 120 * level;
+        expReward = 70 * level;
+        goldReward = 90 * level;
         break;
 
     case EnemyType::ZOMBIE: // 僵尸（慢而硬）
@@ -56,8 +56,8 @@ CommonEnemy::CommonEnemy(EnemyType type, int level)
         setDEF(7 * level);
         setSpeed(3 * level);
         setCritRate(0.07f);
-        expReward = 120 * level;
-        goldReward = 120 * level;
+        expReward = 85 * level;
+        goldReward = 90 * level;
         break;
 
     case EnemyType::SKELETON: // 骷髅（快一些，输出高）
@@ -67,8 +67,8 @@ CommonEnemy::CommonEnemy(EnemyType type, int level)
         setDEF(7 * level);
         setSpeed(6 * level);
         setCritRate(0.09f);
-        expReward = 120 * level;
-        goldReward = 130 * level;
+        expReward = 90 * level;
+        goldReward = 95 * level;
         break;
     
     case EnemyType::BOSS: // 通用BOSS奖励（将军/终极BOSS通过子类覆盖面板）
@@ -78,8 +78,8 @@ CommonEnemy::CommonEnemy(EnemyType type, int level)
         setDEF(10 * level);
         setSpeed(8 * level);
         setCritRate(0.15f);
-        expReward = 200 * level;   // 调整：BOSS奖励上调，不卡级
-        goldReward = 250 * level;
+        expReward = 80 * level;    // 调整：显著降低BOSS一次性经验
+        goldReward = 120 * level;
         break;
 
     default:

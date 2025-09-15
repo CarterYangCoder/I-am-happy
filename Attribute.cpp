@@ -16,7 +16,7 @@ Attribute::Attribute(std::string name, int level)
       hp(120), maxHp(120),            // 调整：初始更耐打
       mp(60), maxMp(60),              // 调整：初始蓝量更稳
       atk(12), def(6), speed(6),      // 调整：起步平衡
-      exp(0), expToNextLevel(80),     // 调整：前期升级更顺畅（80）
+      exp(0), expToNextLevel(150),     // 调整：提高起始升级需求（150）
       gold(0), critRate(0.05f) {
     // 初始化随机数种子（用于暴击判定）
     srand(time(0));

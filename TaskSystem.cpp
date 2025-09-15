@@ -59,19 +59,19 @@ void TaskSystem::initializeTasks() {
         [](Player* p){ auto &inv=p->getInventory(); auto it=inv.find("铁誓胸甲"); return it!=inv.end() && it->second>=1; },
         {},200,100));
     addTask(new Task(
-        "3", "【戴上银戒】", "戴上明识之戒，准备破除玛尔索的幻象。", 10,
+        "3", "【戴上银戒】", "戴上明识之戒，准备破除玛尔索的幻象。", 2,
         [](Player* p){ auto &inv=p->getInventory(); auto it=inv.find("明识之戒"); return it!=inv.end() && it->second>=1; },
         {},100,50));
     addTask(new Task(
-        "4", "【寻找怜悯之链】", "前往城外山脚下，寻找城主藏匿的怜悯之链。", 15,
+        "4", "【寻找怜悯之链】", "前往城外山脚下，寻找城主藏匿的怜悯之链。", 3,
         [](Player* p){ auto &inv=p->getInventory(); auto it=inv.find("怜悯之链"); return it!=inv.end() && it->second>=1; },
         {},250,150));
     addTask(new Task(
-        "5", "【解救三军将领】", "进入静默尖塔迷宫，解救被困的王浠珃。", 20,
+        "5", "【解救三军将领】", "进入静默尖塔迷宫，解救被困的王浠珃。", 4,
         [](Player* p){ auto &inv=p->getInventory(); auto it=inv.find("晨曦披风"); return it!=inv.end() && it->second>=1; },
         {},300,200));
     addTask(new Task(
-        "6", "【找出创世战靴】", "在旧图书馆废墟中寻找创世战靴。", 25,
+        "6", "【找出创世战靴】", "在旧图书馆废墟中寻找创世战靴。", 5,
         [](Player* p){ auto &inv=p->getInventory(); auto it=inv.find("创世战靴"); return it!=inv.end() && it->second>=1; },
         {},400,250));
     ui.displayMessage("任务系统已初始化。", UIManager::Color::GRAY);

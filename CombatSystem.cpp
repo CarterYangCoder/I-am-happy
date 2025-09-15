@@ -65,10 +65,21 @@ int CombatSystem::calculateDamage(const Attribute &attacker, const Attribute &de
     if (isCrit)
     {
         ui.displayMessage(attacker.getName() + " 打出了致命一击!", UIManager::Color::YELLOW);
-        baseAttack *= 2;
+        baseAttack = static_cast<int>(baseAttack * 1.6); // 调整：降低暴击倍数，抑制秒杀
     }
     int damage = baseAttack - defender.getDEF();
-    return std::max(1, damage);
+    damage = std::max(1, damage);
+
+    // 新增：对BOSS类目标的单次伤害上限
+    // 说明：将军BOSS单次伤害≤其最大生命的18%，最终BOSS≤12%
+    if (const auto* fb = dynamic_cast<const BossWanEshuji*>(&defender)) {
+        int cap = std::max(1, static_cast<int>(defender.getMaxHP() * 0.12));
+        damage = std::min(damage, cap);
+    } else if (const auto* boss = dynamic_cast<const EvilGeneral*>(&defender)) {
+        int cap = std::max(1, static_cast<int>(defender.getMaxHP() * 0.18));
+        damage = std::min(damage, cap);
+    }
+    return damage;
 }
 
 bool CombatSystem::attemptEscape(const Player &player, const CommonEnemy &enemy)
@@ -258,14 +269,14 @@ CombatResult CombatSystem::handleSkillSelection(Player& player, Attribute& targe
         }
         case DamageType::BUFF:
         {
-            // 新增：黄金树之誓特殊处理（回血、回蓝、两回合物理免疫）
+            // 黄金树之誓：恢复最大生命/最大蓝量的30%，并获得2回合物理免疫
             if (skill->getType() == SkillType::GOLDEN_TREE_VOW) {
-                int healHp = std::max(scaledPower, static_cast<int>(player.getMaxHP() * 0.12f));
-                int healMp = std::max(static_cast<int>(scaledPower * 0.5f), static_cast<int>(player.getMaxMP() * 0.08f));
+                int healHp = (player.getMaxHP() * 30) / 100;
+                int healMp = (player.getMaxMP() * 30) / 100;
                 player.heal(healHp);
                 player.setMP(player.getMP() + healMp); // setMP内部已做上限裁剪
                 player.addPhysicalShieldTurns(2);
-                ui.displayMessage("黄金树之誓发动！恢复生命 " + std::to_string(healHp) + "，恢复蓝量 " + std::to_string(healMp) + "。", UIManager::Color::GREEN);
+                ui.displayMessage("黄金树之誓发动！恢复了" + std::to_string(healHp) + "点生命（30%最大生命），恢复了" + std::to_string(healMp) + "点蓝量（30%最大蓝量）。", UIManager::Color::GREEN);
                 ui.displayMessage("获得圣光庇护：接下来的2个敌方回合免疫物理伤害！", UIManager::Color::CYAN);
             } else {
                 // 其他一般增益：按原逻辑回血
@@ -342,10 +353,10 @@ CombatResult CombatSystem::handleItemUsage(Player& player, const std::map<int, s
         }
         else if (chosenItemName == "能量药水")
         {
-            int mpRecoverAmount = (player.getMP() * 50) / 100; // 回复50%当前蓝量
+            int mpRecoverAmount = (player.getMaxMP() * 50) / 100; // 改：回复50%最大蓝量
             player.setMP(player.getMP() + mpRecoverAmount);
             player.useItem(chosenItemName);
-            ui.displayMessage("你使用了能量药水，恢复了" + std::to_string(mpRecoverAmount) + "点蓝量（50%当前蓝量）！", UIManager::Color::CYAN);
+            ui.displayMessage("你使用了能量药水，恢复了" + std::to_string(mpRecoverAmount) + "点蓝量（50%最大蓝量）！", UIManager::Color::CYAN);
             ui.displayMessage("药水效果瞬间生效，你可以继续行动！", UIManager::Color::CYAN);
             return CombatResult::Continue; // 不消耗回合，可以继续行动
         }

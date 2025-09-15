@@ -256,7 +256,6 @@ void Player::clearInventory() {
 bool Player::equipFromInventory(const std::string& equipmentName) {
     // 检查背包是否有该装备
     if (inventory.count(equipmentName) && inventory[equipmentName] > 0) {
-        // 新增：检查任务完成状态，只有任务已提交完成才能穿戴
         bool canEquip = false;
         std::string taskRequirement = "";
         
@@ -274,52 +273,125 @@ bool Player::equipFromInventory(const std::string& equipmentName) {
             taskRequirement = "6";
         }
         
-        // 检查任务状态
+        // 调整：不同任务的穿戴前置
         if (!taskRequirement.empty()) {
-            if (taskProgress.count(taskRequirement) && 
-                taskProgress[taskRequirement].getStatus() == TaskStatus::REWARDED) {
-                canEquip = true;
+            TaskStatus ts = TaskStatus::UNACCEPTED;
+            if (taskProgress.count(taskRequirement)) {
+                ts = taskProgress.at(taskRequirement).getStatus();
+            }
+            bool talked = hasTalkedToNpc(taskRequirement);
+
+            if (taskRequirement == "3") {
+                // 明识之戒：需已对话，且至少已接取（或更高状态）即可穿戴，用于“佩戴后再检测完成”
+                if (talked && (ts == TaskStatus::ACCEPTED || ts == TaskStatus::COMPLETED || ts == TaskStatus::REWARDED)) {
+                    canEquip = true;
+                } else {
+                    std::cout << "请先与守誓者对话并接取任务3，再佩戴明识之戒以完成任务。" << std::endl;
+                    return false;
+                }
+            } else if (taskRequirement == "2" || taskRequirement == "4" || taskRequirement == "5" || taskRequirement == "6") {
+                // 胸甲/链/披风/战靴：需已对话且已提交任务（REWARDED）
+                if (talked && ts == TaskStatus::REWARDED) {
+                    canEquip = true;
+                } else {
+                    std::cout << "你还不可以穿戴这件装备！需要先与对应NPC对话并提交任务后才可穿戴。" << std::endl;
+                    return false;
+                }
             } else {
-                std::cout << "你还不可以穿戴这件装备！ (｡•́︿•̀｡)" << std::endl;
-                std::cout << "需要先完成并提交任务" << taskRequirement << "才能获得穿戴权限。" << std::endl;
-                std::cout << "神明：\"耐心点，年轻人，力量需要通过试炼才能获得！ (￣▽￣)ノ\"" << std::endl;
-                return false;
+                // 其他（如任务1头盔）：完成或已领奖可穿戴
+                if (ts == TaskStatus::COMPLETED || ts == TaskStatus::REWARDED) {
+                    canEquip = true;
+                } else {
+                    std::cout << "你还不可以穿戴这件装备！需要先完成对应任务。" << std::endl;
+                    return false;
+                }
             }
         } else {
-            canEquip = true; // 非任务装备可以直接穿戴
+            canEquip = true;
         }
+
+        // 构造装备对象（与原逻辑一致）
+        Equipment* equip = nullptr;
+        if (equipmentName == "自由誓约・破枷之冠")
+            equip = new Equipment("自由誓约・破枷之冠", EquipmentPart::HELMET, "破除精神枷锁", 10, 5, "抵抗精神控制");
+        else if (equipmentName == "忠诚誓约・铁誓胸甲" || equipmentName == "铁誓胸甲")
+            equip = new Equipment("忠诚誓约・铁誓胸甲", EquipmentPart::CHESTPLATE, "忠诚加护", 15, 10, "提升防御");
+        else if (equipmentName == "希望誓约・晨曦披风" || equipmentName == "晨曦披风")
+            equip = new Equipment("希望誓约・晨曦披风", EquipmentPart::CAPE, "希望加持", 8, 8, "提升速度");
+        else if (equipmentName == "怜悯誓约・抚伤之链" || equipmentName == "怜悯之链")
+            equip = new Equipment("怜悯誓约・抚伤之链", EquipmentPart::NECKLACE, "怜悯治愈", 5, 5, "提升回血");
+        else if (equipmentName == "真理誓约・明识之戒" || equipmentName == "明识之戒")
+            equip = new Equipment("真理誓约・明识之戒", EquipmentPart::RING, "明识真理", 5, 5, "提升暴击");
+        else if (equipmentName == "秩序誓约・创世战靴" || equipmentName == "创世战靴")
+            equip = new Equipment("秩序誓约・创世战靴", EquipmentPart::BOOTS, "秩序加速", 8, 8, "提升速度");
         
-        if (canEquip) {
-            // 判断是否为装备类型
-            Equipment* equip = nullptr;
-            // 这里只能通过装备名查找，实际项目可用装备数据库
-            if (equipmentName == "自由誓约・破枷之冠")
-                equip = new Equipment("自由誓约・破枷之冠", EquipmentPart::HELMET, "破除精神枷锁", 10, 5, "抵抗精神控制");
-            else if (equipmentName == "忠诚誓约・铁誓胸甲" || equipmentName == "铁誓胸甲")
-                equip = new Equipment("忠诚誓约・铁誓胸甲", EquipmentPart::CHESTPLATE, "忠诚加护", 15, 10, "提升防御");
-            else if (equipmentName == "希望誓约・晨曦披风" || equipmentName == "晨曦披风")
-                equip = new Equipment("希望誓约・晨曦披风", EquipmentPart::CAPE, "希望加持", 8, 8, "提升速度");
-            else if (equipmentName == "怜悯誓约・抚伤之链")
-                equip = new Equipment("怜悯誓约・抚伤之链", EquipmentPart::NECKLACE, "怜悯治愈", 5, 5, "提升回血");
-            else if (equipmentName == "真理誓约・明识之戒")
-                equip = new Equipment("真理誓约・明识之戒", EquipmentPart::RING, "明识真理", 5, 5, "提升暴击");
-            else if (equipmentName == "秩序誓约・创世战靴")
-                equip = new Equipment("秩序誓约・创世战靴", EquipmentPart::BOOTS, "秩序加速", 8, 8, "提升速度");
-            
-            if (equip) {
-                equipSetPart(equip);
-                // 重要：从背包中完全移除装备（作为消耗品）
-                inventory[equipmentName]--;
-                if (inventory[equipmentName] == 0) {
-                    inventory.erase(equipmentName);
-                }
-                std::cout << "成功穿戴装备：" << equipmentName << std::endl;
-                std::cout << "神明：\"装备已与你融为一体，无法取下，也无法重复获得。\"" << std::endl;
-                return true;
+        if (!equip) {
+            std::cout << "背包中没有该装备或不是装备类型。" << std::endl;
+            return false;
+        }
+
+        // 同部位若已穿戴，则先卸下
+        Equipment* oldEq = divineSet.getEquipment(equip->getPart());
+        if (oldEq) {
+            // 撤回旧加成
+            setATK(getATK() - oldEq->getAtkBonus());
+            setDEF(getDEF() - oldEq->getDefBonus());
+            // 从套装取出并返还背包
+            Equipment* taken = divineSet.takePart(oldEq->getPart());
+            if (taken) {
+                inventory[taken->getName()] += 1;
+                delete taken;
             }
         }
+
+        // 穿戴新件
+        equipSetPart(equip);
+        setATK(getATK() + 0);
+        setDEF(getDEF() + 0);
+
+        // 从背包扣减1件
+        inventory[equipmentName]--;
+        if (inventory[equipmentName] == 0) inventory.erase(equipmentName);
+
+        std::cout << "成功穿戴装备：" << equip->getName() << "（可用 unwear/卸下 命令卸下）" << std::endl;
+        return true;
     }
     std::cout << "背包中没有该装备或不是装备类型。" << std::endl;
+    return false;
+}
+
+// 新增：卸下装备（按名称匹配已穿戴装备）
+bool Player::unequip(const std::string& equipmentName) {
+    // 在已穿戴的套装中查找名称匹配（支持包含关系）
+    Equipment* target = nullptr;
+    EquipmentPart targetPart = EquipmentPart::HELMET;
+    for (const auto& kv : divineSet.getAllParts()) {
+        if (!kv.second) continue;
+        const std::string& eqName = kv.second->getName();
+        if (eqName == equipmentName || eqName.find(equipmentName) != std::string::npos ||
+            equipmentName.find(eqName) != std::string::npos) {
+            target = kv.second;
+            targetPart = kv.first;
+            break;
+        }
+    }
+    if (!target) {
+        std::cout << "未找到已穿戴的该装备。" << std::endl;
+        return false;
+    }
+
+    // 撤回属性加成
+    setATK(getATK() - target->getAtkBonus());
+    setDEF(getDEF() - target->getDefBonus());
+
+    // 从套装移除并返还背包
+    Equipment* taken = divineSet.takePart(targetPart);
+    if (taken) {
+        inventory[taken->getName()] += 1; // 返还同名道具
+        std::cout << "已卸下装备：" << taken->getName() << std::endl;
+        delete taken;
+        return true;
+    }
     return false;
 }
 

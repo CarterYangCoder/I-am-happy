@@ -12,6 +12,36 @@
 #include <windows.h>
 #endif
 
+// 新增：文件系统安全辅助
+namespace {
+    namespace fs = std::filesystem;
+
+    // 新增：存档根目录（相对路径）
+    static const fs::path SAVE_DIR = "save";
+
+    // 统一获取可用的存档目录：优先 SAVE_DIR，失败回退当前目录
+    inline fs::path getSaveDirSafe() {
+        fs::path dir = SAVE_DIR; // 使用本地定义的 SAVE_DIR
+        std::error_code ec;
+        if (!fs::exists(dir, ec)) {
+            fs::create_directories(dir, ec);
+        }
+        if (ec || !fs::exists(dir)) {
+            return fs::current_path(); // 回退
+        }
+        return dir;
+    }
+
+    // 安全删除文件：失败仅告警，不抛异常
+    inline void tryRemoveFile(const fs::path& p, UIManager& ui) {
+        std::error_code ec;
+        fs::remove(p, ec);
+        if (ec) {
+            ui.displayMessage("自动存档: 无法删除旧文件（已忽略）: " + p.string(), UIManager::Color::YELLOW);
+        }
+    }
+}
+
 bool SaveLoadSystem::is_digits_save(const std::string& str)
 {
     return !str.empty() && std::all_of(str.begin(), str.end(), ::isdigit);
@@ -32,32 +62,28 @@ std::string SaveLoadSystem::timeToString(time_t time)
 
 SaveLoadSystem::SaveLoadSystem(UIManager& uiManager) : ui(uiManager)
 {
+    // 修正：不再 const_cast 修改 SAVE_DIR；仅确保目录存在并在失败时提示（内部回退在 getSaveDirSafe 处理）
     try {
-        // 确保存档目录存在，如果失败则使用当前目录
-        if (!std::filesystem::exists(SAVE_DIR))
-        {
-            std::error_code ec;
-            if (!std::filesystem::create_directory(SAVE_DIR, ec)) {
-                // 如果创建失败，使用当前目录
-                ui.displayMessage("警告：无法创建存档目录，将使用当前目录保存", UIManager::Color::YELLOW);
-                const_cast<std::string&>(SAVE_DIR) = "./";
-            }
+        std::error_code ec;
+        auto dir = getSaveDirSafe();
+        if (!std::filesystem::exists(dir, ec)) {
+            ui.displayMessage("存档系统初始化警告: 存档目录不可用，将使用当前目录。", UIManager::Color::YELLOW);
         }
     } catch (const std::exception& e) {
         ui.displayMessage("存档系统初始化警告: " + std::string(e.what()), UIManager::Color::YELLOW);
-        const_cast<std::string&>(SAVE_DIR) = "./";
     }
 }
 
 std::vector<SaveSlot> SaveLoadSystem::listSaveSlots()
 {
     std::vector<SaveSlot> slots;
-    
     try {
         const std::regex file_regex("save_slot_(\\d+)_(\\d{14})\\.sav");
+        std::error_code ec;
+        auto dir = getSaveDirSafe();
 
-        for (const auto& entry : std::filesystem::directory_iterator(SAVE_DIR))
-        {
+        for (const auto& entry : std::filesystem::directory_iterator(dir, ec)) {
+            if (ec) break;
             if (entry.is_regular_file())
             {
                 std::string filename = entry.path().filename().string();
@@ -165,13 +191,13 @@ void SaveLoadSystem::saveGame(const Player& player, const TaskSystem& taskProgre
             }
         }
 
-        // 删除旧存档
+        // 删除旧存档（使用安全删除）
         for (const auto& slot : slots)
         {
             if (slot.id == slotToUse)
             {
                 try {
-                    std::filesystem::remove(std::filesystem::path(SAVE_DIR) / slot.filename);
+                    tryRemoveFile(getSaveDirSafe() / slot.filename, ui);
                 } catch (const std::exception& e) {
                     ui.displayMessage("删除旧存档失败，但会继续保存新存档", UIManager::Color::YELLOW);
                 }
@@ -191,9 +217,9 @@ void SaveLoadSystem::saveGame(const Player& player, const TaskSystem& taskProgre
         filename_ss << "save_slot_" << slotToUse << "_" << std::put_time(&tm_buf, "%Y%m%d%H%M%S") << ".sav";
         std::string filename = filename_ss.str();
 
-        // 保存文件
-        std::string fullPath = (std::filesystem::path(SAVE_DIR) / filename).string();
-        std::ofstream saveFile(fullPath);
+        // 保存文件（改用安全目录）
+        std::string fullPath = (std::filesystem::path(getSaveDirSafe()) / filename).string();
+        std::ofstream saveFile(fullPath, std::ios::out | std::ios::trunc);
         if (!saveFile)
         {
             ui.displayMessage("错误: 无法创建存档文件 " + filename, UIManager::Color::RED);
@@ -256,15 +282,19 @@ void SaveLoadSystem::saveGame(const Player& player, const TaskSystem& taskProgre
 
 void SaveLoadSystem::autoSaveGame(const Player& player, const TaskSystem& taskProgress)
 {
-    // 删除旧的自动存档
-    for (const auto& entry : std::filesystem::directory_iterator(SAVE_DIR))
+    // 使用安全目录与非抛异常版本
+    auto dir = getSaveDirSafe();
+    std::error_code ec;
+
+    // 删除旧的自动存档（安全删除）
+    for (const auto& entry : std::filesystem::directory_iterator(dir, ec))
     {
-        if (entry.is_regular_file())
-        {
-            std::string filename = entry.path().filename().string();
-            if (filename.find("auto_save_") == 0)
-            {
-                std::filesystem::remove(entry.path());
+        if (ec) break;
+        if (entry.is_regular_file()) {
+            const auto& p = entry.path();
+            auto fn = p.filename().string();
+            if (fn.rfind("auto_save_", 0) == 0 && p.extension() == ".sav") {
+                tryRemoveFile(p, ui);
             }
         }
     }
@@ -281,13 +311,14 @@ void SaveLoadSystem::autoSaveGame(const Player& player, const TaskSystem& taskPr
     filename_ss << "auto_save_" << std::put_time(&tm_buf, "%Y%m%d%H%M%S") << ".sav";
     std::string filename = filename_ss.str();
 
-    std::ofstream saveFile((std::filesystem::path(SAVE_DIR) / filename).string());
+    std::ofstream saveFile((dir / filename).string(), std::ios::out | std::ios::trunc);
     if (!saveFile)
     {
         ui.displayMessage("错误: 无法创建自动存档文件 " + filename, UIManager::Color::RED);
         return;
     }
 
+    // 写入自动存档数据
     saveFile << "META " << player.getName() << " " << player.getLevel() << std::endl;
     saveFile << "Level " << player.getLevel() << std::endl;
     saveFile << "Hp " << player.getHP() << std::endl;
@@ -333,17 +364,19 @@ bool SaveLoadSystem::loadGame(Player& player, TaskSystem& taskProgress)
         // 检查是否有自动存档
         std::vector<std::string> autoSaves;
         try {
-            for (const auto& entry : std::filesystem::directory_iterator(SAVE_DIR))
-            {
-                if (entry.is_regular_file())
-                {
-                    std::string filename = entry.path().filename().string();
-                    if (filename.find("auto_save_") == 0)
-                    {
-                        autoSaves.push_back(filename);
+            auto dir = getSaveDirSafe();
+            std::error_code ec;
+            for (const auto& entry : std::filesystem::directory_iterator(dir, ec)) {
+                if (ec) break;
+                if (entry.is_regular_file()) {
+                    const auto& p = entry.path();
+                    auto fn = p.filename().string();
+                    if (fn.rfind("auto_save_", 0) == 0 && p.extension() == ".sav") {
+                        autoSaves.push_back(fn);
                     }
                 }
             }
+            std::sort(autoSaves.begin(), autoSaves.end(), std::greater<>());
         } catch (const std::exception& e) {
             ui.displayMessage("扫描自动存档失败: " + std::string(e.what()), UIManager::Color::YELLOW);
         }
@@ -413,7 +446,7 @@ bool SaveLoadSystem::loadGame(Player& player, TaskSystem& taskProgress)
             std::cout << "无效输入, 请重新输入。" << std::endl;
         }
 
-        std::string fullPath = (std::filesystem::path(SAVE_DIR) / filename_to_load).string();
+        std::string fullPath = (std::filesystem::path(getSaveDirSafe()) / filename_to_load).string();
         std::ifstream loadFile(fullPath);
         if (!loadFile.is_open())
         {

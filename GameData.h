@@ -5,10 +5,10 @@
 // 核心常量定义
 const float DEFAULT_CRIT_DAMAGE_MULTIPLE = 2.5f; // 暴击伤害为2.5倍
 const float LEVEL_UP_ATTR_MULTIPLIER = 1.15f; // 等级提升属性倍率
-const float LEVEL_UP_EXP_MULTIPLIER = 1.1f; // 等级提升经验条倍率
+const float LEVEL_UP_EXP_MULTIPLIER = 1.25f; // 调整：升级经验增长更快（原1.1）
 
 // 新增：技能默认每级成长系数（线性成长，按解锁等级起算）
-const float DEFAULT_SKILL_GROWTH_PER_LEVEL = 0.12f; // 调整：从0.6降到0.12
+const float DEFAULT_SKILL_GROWTH_PER_LEVEL = 0.10f; // 调整：略降技能成长（原0.12）
 
 // 新增：技能MP消耗配置（基础值 + 每级成长系数）
 const int   DEFAULT_MP_COST_PHYSICAL = 6;

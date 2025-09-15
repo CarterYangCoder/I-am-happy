@@ -41,3 +41,12 @@ Equipment* DivineSet::getEquipment(EquipmentPart part) const {
 const std::map<EquipmentPart, Equipment*>& DivineSet::getAllParts() const {
     return parts;
 }
+
+// 新增：从套装中取出部件（不释放内存）
+Equipment* DivineSet::takePart(EquipmentPart part) {
+    auto it = parts.find(part);
+    if (it == parts.end()) return nullptr;
+    Equipment* e = it->second;
+    parts.erase(it);
+    return e;
+}

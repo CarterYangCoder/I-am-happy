@@ -6,10 +6,10 @@ EvilGeneral::EvilGeneral(std::string name, EvilType type, std::string territory,
     :CommonEnemy (EnemyType::BOSS,level), evilType(type), territory(territory) {
     setName(name);
     // 调整：更合理的将军面板（强于小怪，但可用技能打穿）
-    setMaxHP(600 + level * 50);  // HP随等级递增
+    setMaxHP(800 + level * 60);  // 调整：提高BOSS耐久，避免被秒
     setHP(getMaxHP());
     setATK(25 + level * 2);      // 攻击力中等偏高
-    setDEF(12 + static_cast<int>(level * 1.5)); // 防御较高但可被技能穿透
+    setDEF(18 + static_cast<int>(level * 2.0)); // 调整：提高防御，抑制单发爆伤
     setSpeed(10 + static_cast<int>(level * 0.5));
     setCritRate(0.10f + level * 0.005f); // 略随等级提升
 }
