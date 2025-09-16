@@ -1,4 +1,4 @@
-#include "Game.h"
+#include "game.h"
 #include "MainMenu.h"
 #include "TaskSystem.h"
 #include <iostream>
@@ -49,7 +49,7 @@ int main() {
 #else
         // Linux/macOS系统设置
         try {
-            std::locale::global(std::locale("");
+            std::locale::global(std::locale("zh_CN.UTF-8"));
         } catch (const std::exception& e) {
             std::cerr << "本地化设置警告: " << e.what() << std::endl;
         }

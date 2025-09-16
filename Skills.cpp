@@ -34,7 +34,6 @@ Skill::Skill(SkillType type,
     }
 
     // 默认系数（类似MOBA：基础值 + AD/AP系数）
-    // 你可根据手感再微调
     switch (dmgType_) {
         case DamageType::PHYSICAL:
             adRatio_ = 1.0f;   // 100% AD
@@ -53,7 +52,7 @@ Skill::Skill(SkillType type,
     }
 }
 
-// 仅按等级做线性成长（展示友好，兼容旧UI）
+// 仅按等级做线性成长
 int Skill::getScaledPower(int playerLevel) const {
     int lvDelta = std::max(0, playerLevel - unlockLevel_);
     float growth = 1.0f + DEFAULT_SKILL_GROWTH_PER_LEVEL * lvDelta;
